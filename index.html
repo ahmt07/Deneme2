@@ -1,1328 +1,605 @@
-<!doctype html>
-<html lang="tr">
-<head>
-<meta charset="utf-8">
-<title>Ahmet Tekeli Erkek Kuaförü • Randevu Sistemi</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#f4f5fb;
-  --card:#ffffff;
-  --blue:#2196f3;
-  --blue-soft:#e3f2fd;
-  --blue-dark:#1565c0;
-  --green:#2e7d32;
-  --green-soft:#e8f5e9;
-  --red:#e53935;
-  --red-soft:#ffebee;
-  --purple:#7c4dff;
-  --ink:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-  --shadow:0 14px 35px rgba(15,23,42,.18);
-  --radius-lg:26px;
-  --radius-md:18px;
-  --radius-sm:12px;
-}
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, User, Scissors, Settings, LogOut, Users, Plus, X, Edit2, Check } from 'lucide-react';
 
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{
-  font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-  background:var(--bg);
-  color:var(--ink);
-}
+const BarberAppointmentSystem = () => {
+  const [currentView, setCurrentView] = useState('login');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([
+    { id: 1, email: 'berber@ornek.com', password: '123456', type: 'barber', name: 'Ahmet Kuaför', phone: '0555 111 2233' },
+    { id: 2, email: 'musteri@ornek.com', password: '123456', type: 'customer', name: 'Mehmet Yılmaz', phone: '0555 444 5566' }
+  ]);
+  
+  const [barbers, setBarbers] = useState({
+    1: {
+      shopName: 'Ahmet Kuaför',
+      staff: [
+        { id: 1, name: 'Ahmet Usta', specialty: 'Klasik Kesim' },
+        { id: 2, name: 'Mehmet Kalfa', specialty: 'Modern Kesim' }
+      ],
+      services: [
+        { id: 1, name: 'Saç Kesimi', duration: 30, price: 200 },
+        { id: 2, name: 'Sakal Tıraşı', duration: 20, price: 100 },
+        { id: 3, name: 'Saç + Sakal', duration: 45, price: 250 }
+      ]
+    }
+  });
+  
+  const [appointments, setAppointments] = useState([
+    {
+      id: 1,
+      barberId: 1,
+      customerId: 2,
+      customerName: 'Mehmet Yılmaz',
+      staffId: 1,
+      staffName: 'Ahmet Usta',
+      serviceId: 1,
+      serviceName: 'Saç Kesimi',
+      date: '2026-01-22',
+      time: '14:00',
+      status: 'confirmed'
+    }
+  ]);
 
-/* ==== APP WRAP ==== */
-.app{
-  max-width:430px;
-  margin:0 auto;
-  min-height:100vh;
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
-  padding:18px 12px 32px;
-}
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ email: '', password: '', name: '', phone: '', type: 'customer' });
+  const [showRegister, setShowRegister] = useState(false);
+  
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editingService, setEditingService] = useState(null);
+  const [newStaff, setNewStaff] = useState({ name: '', specialty: '' });
+  const [newService, setNewService] = useState({ name: '', duration: 30, price: 0 });
+  
+  const [bookingForm, setBookingForm] = useState({
+    barberId: null,
+    staffId: null,
+    serviceId: null,
+    date: '',
+    time: ''
+  });
 
-/* simple mobile frame look */
-.phone{
-  width:100%;
-  background:#fdfdff;
-  border-radius:32px;
-  box-shadow:0 20px 50px rgba(15,23,42,.25);
-  overflow:hidden;
-  position:relative;
-}
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const user = users.find(u => u.email === loginForm.email && u.password === loginForm.password);
+    if (user) {
+      setCurrentUser(user);
+      setCurrentView(user.type === 'barber' ? 'barber-panel' : 'customer-panel');
+      setLoginForm({ email: '', password: '' });
+    } else {
+      alert('Hatalı giriş bilgileri!');
+    }
+  };
 
-/* top fake status bar */
-.phone-header{
-  height:52px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:13px;
-  font-weight:500;
-  color:#6b7280;
-  background:linear-gradient(135deg,#e0f2fe,#f3e8ff);
-}
+  const handleRegister = (e) => {
+    e.preventDefault();
+    const newUser = {
+      id: users.length + 1,
+      ...registerForm
+    };
+    setUsers([...users, newUser]);
+    
+    if (registerForm.type === 'barber') {
+      setBarbers({
+        ...barbers,
+        [newUser.id]: {
+          shopName: registerForm.name,
+          staff: [],
+          services: []
+        }
+      });
+    }
+    
+    alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+    setShowRegister(false);
+    setRegisterForm({ email: '', password: '', name: '', phone: '', type: 'customer' });
+  };
 
-/* ==== SCREENS ==== */
-.screen{
-  padding:18px 18px 22px;
-  max-height:calc(100vh - 52px);
-  overflow-y:auto;
-}
-.hidden{display:none}
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setCurrentView('login');
+  };
 
-/* ==== LOGIN ==== */
-.login-card{
-  background:linear-gradient(145deg,#1e88e5,#42a5f5);
-  border-radius:var(--radius-lg);
-  padding:26px 22px 32px;
-  color:#fff;
-  box-shadow:var(--shadow);
-  margin-bottom:18px;
-}
-.login-logo{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:18px;
-}
-.logo-icon{
-  width:40px;height:40px;
-  border-radius:14px;
-  background:rgba(255,255,255,.13);
-  display:flex;align-items:center;justify-content:center;
-  font-size:22px;
-}
-.logo-text{
-  line-height:1.25;
-}
-.logo-text strong{
-  display:block;
-  font-size:17px;
-  letter-spacing:.04em;
-}
-.logo-text span{
-  font-size:13px;
-  opacity:.9;
-}
+  const addStaff = () => {
+    if (!newStaff.name || !newStaff.specialty) return;
+    const updatedBarber = { ...barbers[currentUser.id] };
+    updatedBarber.staff.push({
+      id: updatedBarber.staff.length + 1,
+      ...newStaff
+    });
+    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
+    setNewStaff({ name: '', specialty: '' });
+  };
 
-.login-card h2{
-  font-size:20px;
-  margin-bottom:6px;
-}
-.login-card p{
-  font-size:13px;
-  opacity:.9;
-  margin-bottom:18px;
-}
+  const deleteStaff = (staffId) => {
+    const updatedBarber = { ...barbers[currentUser.id] };
+    updatedBarber.staff = updatedBarber.staff.filter(s => s.id !== staffId);
+    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
+  };
 
-.field{
-  background:rgba(255,255,255,.96);
-  border-radius:16px;
-  padding:10px 12px 4px;
-  margin-bottom:12px;
-  color:#111827;
-}
-.field-label{
-  font-size:11px;
-  color:#6b7280;
-}
-.field-inner{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.field-inner span{
-  font-size:16px;
-  opacity:.7;
-}
-.field-inner input{
-  border:none;
-  outline:none;
-  padding:6px 2px 8px;
-  width:100%;
-  font-size:14px;
-  background:transparent;
-}
+  const addService = () => {
+    if (!newService.name || !newService.price) return;
+    const updatedBarber = { ...barbers[currentUser.id] };
+    updatedBarber.services.push({
+      id: updatedBarber.services.length + 1,
+      ...newService
+    });
+    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
+    setNewService({ name: '', duration: 30, price: 0 });
+  };
 
-.login-bottom-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin:4px 2px 18px;
-  font-size:12px;
-}
-.login-bottom-row a{
-  color:#fefefe;
-  text-decoration:underline;
-}
+  const deleteService = (serviceId) => {
+    const updatedBarber = { ...barbers[currentUser.id] };
+    updatedBarber.services = updatedBarber.services.filter(s => s.id !== serviceId);
+    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
+  };
 
-.btn{
-  border:none;
-  outline:none;
-  cursor:pointer;
-  border-radius:999px;
-  padding:11px 18px;
-  font-size:15px;
-  font-weight:600;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  transition:.18s transform,.18s box-shadow,.18s background;
-}
-.btn-primary{
-  width:100%;
-  background:linear-gradient(135deg,#1e88e5,#42a5f5);
-  color:#fff;
-  box-shadow:0 8px 25px rgba(33,150,243,.4);
-}
-.btn-primary:active{
-  transform:translateY(1px);
-  box-shadow:0 4px 14px rgba(33,150,243,.45);
-}
-.btn-outline{
-  background:transparent;
-  color:var(--blue-dark);
-  border:1px solid rgba(37,99,235,.3);
-}
+  const bookAppointment = (e) => {
+    e.preventDefault();
+    const barber = barbers[bookingForm.barberId];
+    const staff = barber.staff.find(s => s.id === parseInt(bookingForm.staffId));
+    const service = barber.services.find(s => s.id === parseInt(bookingForm.serviceId));
+    
+    const newAppointment = {
+      id: appointments.length + 1,
+      barberId: bookingForm.barberId,
+      customerId: currentUser.id,
+      customerName: currentUser.name,
+      staffId: staff.id,
+      staffName: staff.name,
+      serviceId: service.id,
+      serviceName: service.name,
+      date: bookingForm.date,
+      time: bookingForm.time,
+      status: 'confirmed'
+    };
+    
+    setAppointments([...appointments, newAppointment]);
+    setBookingForm({ barberId: null, staffId: null, serviceId: null, date: '', time: '' });
+    alert('Randevunuz başarıyla oluşturuldu!');
+  };
 
-/* login footer row */
-.login-footer{
-  padding:6px 4px 4px;
-  font-size:13px;
-  display:flex;
-  justify-content:space-between;
-}
-.login-footer span{color:#4b5563}
-.login-footer a{
-  color:#1d4ed8;
-  font-weight:600;
-  text-decoration:none;
-}
+  const cancelAppointment = (appointmentId) => {
+    if (confirm('Randevuyu iptal etmek istediğinizden emin misiniz?')) {
+      setAppointments(appointments.filter(a => a.id !== appointmentId));
+    }
+  };
 
-/* ==== DASHBOARD HEADER ==== */
-.appbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:14px;
-}
-.appbar-title{
-  display:flex;
-  flex-direction:column;
-}
-.appbar-title small{
-  font-size:11px;
-  color:var(--muted);
-}
-.appbar-title strong{
-  font-size:18px;
-}
-.appbar-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.icon-btn{
-  width:34px;height:34px;
-  border-radius:14px;
-  border:none;
-  background:#e5f1ff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  position:relative;
-  cursor:pointer;
-}
-.icon-btn.logout{
-  background:#ffebee;
-}
-.icon-btn span{
-  font-size:18px;
-}
-.badge{
-  position:absolute;
-  top:-5px;right:-4px;
-  min-width:16px;
-  height:16px;
-  border-radius:999px;
-  background:#ef4444;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:10px;
-  padding:0 3px;
-}
+  const getAvailableTimes = () => {
+    const times = [];
+    for (let h = 9; h <= 18; h++) {
+      times.push(`${h.toString().padStart(2, '0')}:00`);
+      if (h < 18) times.push(`${h.toString().padStart(2, '0')}:30`);
+    }
+    return times;
+  };
 
-/* ==== TOP TABS ==== */
-.tabs{
-  display:flex;
-  background:#f1f5f9;
-  border-radius:22px;
-  padding:4px;
-  gap:4px;
-  margin-bottom:16px;
-}
-.tab-btn{
-  flex:1;
-  border:none;
-  border-radius:16px;
-  padding:7px 4px 8px;
-  font-size:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  color:#4b5563;
-  background:transparent;
-  cursor:pointer;
-}
-.tab-btn span.icon{
-  font-size:15px;
-}
-.tab-btn.active{
-  background:#ffffff;
-  color:#111827;
-  box-shadow:0 3px 9px rgba(15,23,42,.12);
-}
-
-/* ==== PANELS GENERAL ==== */
-.section{
-  background:var(--card);
-  border-radius:var(--radius-lg);
-  box-shadow:0 12px 30px rgba(15,23,42,.12);
-  padding:16px 14px 18px;
-  margin-bottom:16px;
-}
-.section-title{
-  font-size:15px;
-  font-weight:600;
-  margin-bottom:6px;
-}
-.section-sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:10px;
-}
-
-/* info banner */
-.info-banner{
-  border-radius:14px;
-  padding:10px 10px;
-  font-size:12px;
-  display:flex;
-  gap:8px;
-  background:#e8f5e9;
-  color:#166534;
-  margin-bottom:12px;
-}
-.info-banner.red{
-  background:#ffebee;
-  color:#b91c1c;
-}
-.info-icon{
-  font-size:16px;
-}
-
-/* ==== STAFF CARDS ==== */
-.chip-list{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-.staff-card{
-  flex:1 1 100%;
-  background:linear-gradient(135deg,#1e88e5,#42a5f5);
-  color:#fff;
-  border-radius:var(--radius-md);
-  padding:12px 12px 10px;
-  margin-top:10px;
-}
-.staff-header{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:6px;
-}
-.staff-avatar{
-  width:40px;height:40px;border-radius:50%;overflow:hidden;
-  background:rgba(255,255,255,.18);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:600;
-}
-.staff-avatar img{width:100%;height:100%;object-fit:cover}
-.staff-name{
-  font-size:14px;
-  font-weight:600;
-}
-.staff-services{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:10px;
-}
-.pill{
-  padding:4px 9px;
-  border-radius:999px;
-  font-size:11px;
-  background:rgba(255,255,255,.18);
-}
-.card-actions{
-  display:flex;
-  gap:8px;
-}
-.btn-xs{
-  font-size:12px;
-  padding:7px 10px;
-  border-radius:999px;
-  border:none;
-  cursor:pointer;
-}
-.btn-xs.edit{
-  background:#ffffff;
-  color:#1e88e5;
-}
-.btn-xs.delete{
-  background:#ffebee;
-  color:#b91c1c;
-}
-
-/* ==== SERVICE & PRODUCT CARDS ==== */
-.grid-2{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-.service-card,
-.product-card{
-  border-radius:18px;
-  padding:10px 10px 9px;
-  background:var(--blue-soft);
-  cursor:pointer;
-  position:relative;
-}
-.service-card.selected,
-.product-card.selected{
-  outline:2px solid var(--blue-dark);
-}
-.service-icon{
-  font-size:24px;margin-bottom:4px;
-}
-.service-name{
-  font-size:13px;
-  font-weight:600;
-  margin-bottom:2px;
-}
-.service-price{
-  font-size:12px;
-  color:#1f2933;
-}
-.service-duration{
-  font-size:11px;
-  color:#6b7280;
-}
-
-.product-thumb{
-  width:32px;height:32px;
-  border-radius:12px;
-  background:#fff;
-  margin-bottom:4px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;
-}
-.product-name{
-  font-size:12px;
-  font-weight:600;
-}
-.product-price{
-  font-size:12px;
-}
-.product-stock{
-  font-size:11px;
-  margin-top:2px;
-  color:#374151;
-}
-
-/* small danger badge */
-.badge-sm{
-  position:absolute;
-  top:8px;right:8px;
-  font-size:10px;
-  background:#f97316;
-  color:#fff;
-  padding:2px 7px;
-  border-radius:999px;
-}
-
-/* ==== HOURS ==== */
-.hours-list{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.hour-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:8px 10px;
-  border-radius:14px;
-  background:#f1f5f9;
-}
-.hour-left{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  font-size:13px;
-}
-.hour-toggle{
-  padding:4px 10px;
-  font-size:11px;
-  border-radius:999px;
-  border:none;
-  cursor:pointer;
-}
-.hour-toggle.on{
-  background:#dbeafe;
-  color:#1d4ed8;
-}
-.hour-toggle.off{
-  background:#fee2e2;
-  color:#b91c1c;
-}
-.hour-time{
-  font-size:12px;
-  color:#4b5563;
-}
-
-/* ==== RESERVATION FLOW ==== */
-.staff-chooser{
-  display:flex;
-  gap:10px;
-}
-.staff-pill{
-  flex:1;
-  border-radius:18px;
-  padding:8px 10px;
-  background:#e0f2fe;
-  display:flex;
-  flex-direction:column;
-  gap:2px;
-  align-items:flex-start;
-  cursor:pointer;
-}
-.staff-pill span:first-child{
-  font-size:12px;
-  color:#6b7280;
-}
-.staff-pill strong{
-  font-size:14px;
-}
-.staff-pill.active{
-  background:#1d4ed8;
-  color:#fff;
-}
-
-.total-box{
-  margin-top:10px;
-  padding:9px 12px;
-  border-radius:14px;
-  background:var(--green-soft);
-  color:#064e3b;
-  font-size:13px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-/* date / time chooser */
-.date-row{
-  display:flex;
-  gap:8px;
-  overflow-x:auto;
-  padding-bottom:4px;
-  margin-top:6px;
-}
-.date-chip{
-  min-width:64px;
-  border-radius:16px;
-  padding:6px 6px;
-  background:#e5f0ff;
-  text-align:center;
-  font-size:11px;
-  cursor:pointer;
-}
-.date-chip strong{
-  display:block;
-  font-size:13px;
-}
-.date-chip.active{
-  background:#1d4ed8;
-  color:#fff;
-}
-
-.time-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:6px;
-  margin-top:8px;
-}
-.time-btn{
-  padding:7px 4px;
-  border-radius:999px;
-  border:none;
-  font-size:11px;
-  background:#e5f0ff;
-  cursor:pointer;
-}
-.time-btn.selected{
-  background:#22c55e;
-  color:#fff;
-}
-.time-btn.disabled{
-  background:#e5e7eb;
-  color:#9ca3af;
-  cursor:not-allowed;
-}
-
-/* ==== SIMPLE LIST OF RESERVATIONS ==== */
-.res-list{
-  margin-top:8px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.res-item{
-  border-radius:16px;
-  background:#f1f5f9;
-  padding:8px 10px;
-  font-size:12px;
-}
-.res-item strong{
-  display:block;
-  font-size:13px;
-}
-
-/* ==== MINI FORMS (ADD) ==== */
-.form-row{
-  display:flex;
-  gap:8px;
-  margin-top:6px;
-  flex-wrap:wrap;
-}
-.form-row input{
-  flex:1;
-  border-radius:10px;
-  border:1px solid var(--border);
-  padding:6px 8px;
-  font-size:12px;
-}
-.form-row button{
-  font-size:12px;
-  padding:7px 10px;
-  border-radius:10px;
-  border:none;
-  background:#1d4ed8;
-  color:#fff;
-  cursor:pointer;
-}
-
-/* ==== TOAST ==== */
-.toast{
-  position:absolute;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%) translateY(120%);
-  background:#111827;
-  color:#f9fafb;
-  padding:9px 14px;
-  border-radius:999px;
-  font-size:12px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  box-shadow:0 12px 30px rgba(15,23,42,.5);
-  opacity:0;
-  pointer-events:none;
-  transition:.3s;
-}
-.toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
-.toast span{font-size:15px}
-</style>
-</head>
-<body>
-
-<div class="app">
-  <div class="phone">
-
-    <div class="phone-header">
-      Ahmet Tekeli Erkek Kuaförü • Online Randevu
-    </div>
-
-    <!-- LOGIN SCREEN -->
-    <div class="screen" id="screen-login">
-      <div class="login-card">
-        <div class="login-logo">
-          <div class="logo-icon">✂️</div>
-          <div class="logo-text">
-            <strong>KUAFÖRÜM</strong>
-            <span>Ahmet Tekeli Randevu Sistemi</span>
+  // Login View
+  if (currentView === 'login') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Scissors className="text-white" size={32} />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800">Berber Randevu</h1>
+            <p className="text-gray-600 mt-2">Kolay ve hızlı randevu sistemi</p>
           </div>
-        </div>
 
-        <h2>İşletme Girişi</h2>
-        <p>Ahmet Tekeli erkek kuaförünü yönetin, randevularınızı ve çalışanlarınızı tek panelden kontrol edin.</p>
-
-        <div class="field">
-          <div class="field-label">E-posta Adresi</div>
-          <div class="field-inner">
-            <span>📧</span>
-            <input type="email" id="login-email" placeholder="E-posta Adresi">
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="field-label">Şifre</div>
-          <div class="field-inner">
-            <span>🔒</span>
-            <input type="password" id="login-password" placeholder="Şifre">
-          </div>
-        </div>
-
-        <div class="login-bottom-row">
-          <span></span>
-          <a href="javascript:void(0)">Şifremi Unuttum?</a>
-        </div>
-
-        <button class="btn btn-primary" id="btn-login">
-          <span>Giriş Yap</span>
-        </button>
-      </div>
-
-      <div class="login-footer">
-        <span>İşletme Girişi</span>
-        <a href="javascript:void(0)">Kayıt Ol</a>
-      </div>
-    </div>
-
-    <!-- DASHBOARD SCREEN -->
-    <div class="screen hidden" id="screen-dashboard">
-      <div class="appbar">
-        <div class="appbar-title">
-          <small>İşletme Paneli</small>
-          <strong>Ahmet Tekeli Kuaför</strong>
-        </div>
-        <div class="appbar-actions">
-          <button class="icon-btn" id="btn-bell">
-            <span>🔔</span>
-            <div class="badge" id="badge-notif">0</div>
-          </button>
-          <button class="icon-btn logout" id="btn-logout" title="Çıkış">
-            <span>⏏️</span>
-          </button>
+          {!showRegister ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
+                <input
+                  type="email"
+                  value={loginForm.email}
+                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                Giriş Yap
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRegister(true)}
+                className="w-full border border-indigo-600 text-indigo-600 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition"
+              >
+                Kayıt Ol
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Hesap Tipi</label>
+                <select
+                  value={registerForm.type}
+                  onChange={(e) => setRegisterForm({ ...registerForm, type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="customer">Müşteri</option>
+                  <option value="barber">Berber</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {registerForm.type === 'barber' ? 'Berber Adı' : 'Ad Soyad'}
+                </label>
+                <input
+                  type="text"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
+                <input
+                  type="tel"
+                  value={registerForm.phone}
+                  onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
+                <input
+                  type="email"
+                  value={registerForm.email}
+                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                Kayıt Ol
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRegister(false)}
+                className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
+              >
+                Geri Dön
+              </button>
+            </form>
+          )}
         </div>
       </div>
+    );
+  }
 
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="rez">
-          <span class="icon">📅</span><span>Rezervasyon</span>
-        </button>
-        <button class="tab-btn" data-tab="staff">
-          <span class="icon">👥</span><span>Elemanlar</span>
-        </button>
-        <button class="tab-btn" data-tab="services">
-          <span class="icon">✂️</span><span>Hizmetler</span>
-        </button>
-        <button class="tab-btn" data-tab="products">
-          <span class="icon">🛍️</span><span>Ürünler</span>
-        </button>
-        <button class="tab-btn" data-tab="settings">
-          <span class="icon">⚙️</span><span>Ayarlar</span>
-        </button>
-      </div>
+  // Barber Panel
+  if (currentView === 'barber-panel') {
+    const myAppointments = appointments.filter(a => a.barberId === currentUser.id);
+    const myBarber = barbers[currentUser.id];
 
-      <!-- === REZERVASYON TAB === -->
-      <div id="tab-rez" class="tab-content">
-        <div class="section">
-          <div class="section-title">Rezervasyon Yapalım</div>
-          <div class="section-sub">Eleman, hizmet ve isteğe göre ürün seçerek müşteriniz için hızlıca randevu oluşturun.</div>
-
-          <!-- Staff chooser -->
-          <div class="section-sub" style="margin-top:4px;margin-bottom:4px;font-weight:500;">
-            Eleman Seç
-          </div>
-          <div class="staff-chooser" id="rez-staff"></div>
-
-          <!-- Service chooser -->
-          <div class="section-sub" style="margin-top:10px;margin-bottom:6px;font-weight:500;">
-            Hizmet Seç
-          </div>
-          <div class="grid-2" id="rez-services"></div>
-
-          <!-- Product chooser -->
-          <div class="section-sub" style="margin-top:12px;margin-bottom:6px;font-weight:500;">
-            Ürünler (Opsiyonel)
-          </div>
-          <div class="grid-2" id="rez-products"></div>
-
-          <!-- Total -->
-          <div class="total-box" id="rez-total">
-            <span>Toplam Ücret</span>
-            <strong>₺0.00</strong>
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-indigo-600 text-white p-6 shadow-lg">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <Scissors size={32} />
+              <div>
+                <h1 className="text-2xl font-bold">{myBarber.shopName}</h1>
+                <p className="text-indigo-200">{currentUser.name}</p>
+              </div>
+            </div>
+            <button onClick={handleLogout} className="flex items-center gap-2 bg-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-800 transition">
+              <LogOut size={20} />
+              Çıkış
+            </button>
           </div>
         </div>
 
-        <!-- Date / time -->
-        <div class="section">
-          <div class="section-title">Tarih Seçin</div>
-          <div class="date-row" id="rez-dates"></div>
-
-          <div class="section-title" style="margin-top:10px;">Saat Seçin</div>
-          <div class="time-grid" id="rez-times"></div>
-
-          <button class="btn btn-primary" style="margin-top:14px;width:100%;" id="btn-create-res">
-            REZERVASYON YAP
-          </button>
-        </div>
-
-        <!-- list of reservations -->
-        <div class="section">
-          <div class="section-title">Bugünkü Randevular</div>
-          <div class="res-list" id="res-list"></div>
-        </div>
-      </div>
-
-      <!-- === STAFF TAB === -->
-      <div id="tab-staff" class="tab-content hidden">
-        <div class="section">
-          <div class="section-title">Elemanlar</div>
-          <div class="section-sub">Eklediğiniz berberleri müşteriler randevu oluştururken seçebilir.</div>
-
-          <div class="info-banner">
-            <div class="info-icon">ℹ️</div>
-            <div>Elemanlara hangi hizmetleri verdiğini eklemeyi unutmayın. Rezervasyon ekranında ona göre gösterilir.</div>
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          {/* Çalışanlar */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Users size={24} className="text-indigo-600" />
+              Çalışanlar
+            </h2>
+            <div className="space-y-3">
+              {myBarber.staff.map(staff => (
+                <div key={staff.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-semibold">{staff.name}</p>
+                    <p className="text-sm text-gray-600">{staff.specialty}</p>
+                  </div>
+                  <button onClick={() => deleteStaff(staff.id)} className="text-red-600 hover:text-red-800">
+                    <X size={20} />
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2 mt-4">
+                <input
+                  type="text"
+                  placeholder="Çalışan adı"
+                  value={newStaff.name}
+                  onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  placeholder="Uzmanlık"
+                  value={newStaff.specialty}
+                  onChange={(e) => setNewStaff({ ...newStaff, specialty: e.target.value })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <button onClick={addStaff} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div id="staff-list"></div>
+          {/* Hizmetler */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Scissors size={24} className="text-indigo-600" />
+              Hizmetler
+            </h2>
+            <div className="space-y-3">
+              {myBarber.services.map(service => (
+                <div key={service.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-semibold">{service.name}</p>
+                    <p className="text-sm text-gray-600">{service.duration} dk - {service.price} ₺</p>
+                  </div>
+                  <button onClick={() => deleteService(service.id)} className="text-red-600 hover:text-red-800">
+                    <X size={20} />
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2 mt-4">
+                <input
+                  type="text"
+                  placeholder="Hizmet adı"
+                  value={newService.name}
+                  onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="number"
+                  placeholder="Süre (dk)"
+                  value={newService.duration}
+                  onChange={(e) => setNewService({ ...newService, duration: parseInt(e.target.value) })}
+                  className="w-24 px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <input
+                  type="number"
+                  placeholder="Fiyat (₺)"
+                  value={newService.price}
+                  onChange={(e) => setNewService({ ...newService, price: parseInt(e.target.value) })}
+                  className="w-24 px-4 py-2 border border-gray-300 rounded-lg"
+                />
+                <button onClick={addService} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
 
-          <div class="section-sub" style="margin-top:12px;font-weight:500;">Yeni Eleman Ekle</div>
-          <div class="form-row">
-            <input type="text" id="new-staff-name" placeholder="Ad Soyad">
-            <input type="text" id="new-staff-services" placeholder="Verdiği hizmetler (virgülle)">
-            <button id="btn-add-staff">Ekle</button>
+          {/* Randevular */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Calendar size={24} className="text-indigo-600" />
+              Randevular ({myAppointments.length})
+            </h2>
+            <div className="space-y-3">
+              {myAppointments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Henüz randevu yok</p>
+              ) : (
+                myAppointments.map(apt => (
+                  <div key={apt.id} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-lg">{apt.customerName}</p>
+                        <p className="text-gray-600">{apt.staffName} - {apt.serviceName}</p>
+                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                          <Clock size={16} />
+                          {apt.date} - {apt.time}
+                        </p>
+                      </div>
+                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                        {apt.status === 'confirmed' ? 'Onaylı' : 'İptal'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <!-- === SERVICES TAB === -->
-      <div id="tab-services" class="tab-content hidden">
-        <div class="section">
-          <div class="section-title">Hizmetler</div>
-          <div class="section-sub">Fiyat ve süreleri belirleyin. Rezervasyon süresi otomatik hesaplanır.</div>
+  // Customer Panel
+  if (currentView === 'customer-panel') {
+    const myAppointments = appointments.filter(a => a.customerId === currentUser.id);
+    const allBarbers = Object.entries(barbers).map(([id, data]) => ({
+      id: parseInt(id),
+      ...data
+    }));
 
-          <div class="grid-2" id="services-list"></div>
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-indigo-600 text-white p-6 shadow-lg">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <User size={32} />
+              <div>
+                <h1 className="text-2xl font-bold">Müşteri Paneli</h1>
+                <p className="text-indigo-200">{currentUser.name}</p>
+              </div>
+            </div>
+            <button onClick={handleLogout} className="flex items-center gap-2 bg-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-800 transition">
+              <LogOut size={20} />
+              Çıkış
+            </button>
+          </div>
+        </div>
 
-          <div class="section-sub" style="margin-top:12px;font-weight:500;">Yeni Hizmet Ekle</div>
-          <div class="form-row">
-            <input type="text" id="new-service-name" placeholder="Hizmet Adı">
-            <input type="number" id="new-service-price" placeholder="Fiyat (₺)">
-            <input type="number" id="new-service-duration" placeholder="Süre (dk)">
-            <button id="btn-add-service">Ekle</button>
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          {/* Randevu Oluştur */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Plus size={24} className="text-indigo-600" />
+              Yeni Randevu Oluştur
+            </h2>
+            <form onSubmit={bookAppointment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Berber Seçin</label>
+                <select
+                  value={bookingForm.barberId || ''}
+                  onChange={(e) => setBookingForm({ ...bookingForm, barberId: parseInt(e.target.value), staffId: null, serviceId: null })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  required
+                >
+                  <option value="">Berber seçiniz</option>
+                  {allBarbers.map(barber => (
+                    <option key={barber.id} value={barber.id}>{barber.shopName}</option>
+                  ))}
+                </select>
+              </div>
+
+              {bookingForm.barberId && barbers[bookingForm.barberId].staff.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Usta Seçin</label>
+                  <select
+                    value={bookingForm.staffId || ''}
+                    onChange={(e) => setBookingForm({ ...bookingForm, staffId: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="">Usta seçiniz</option>
+                    {barbers[bookingForm.barberId].staff.map(staff => (
+                      <option key={staff.id} value={staff.id}>{staff.name} - {staff.specialty}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {bookingForm.barberId && barbers[bookingForm.barberId].services.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet Seçin</label>
+                  <select
+                    value={bookingForm.serviceId || ''}
+                    onChange={(e) => setBookingForm({ ...bookingForm, serviceId: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="">Hizmet seçiniz</option>
+                    {barbers[bookingForm.barberId].services.map(service => (
+                      <option key={service.id} value={service.id}>{service.name} - {service.price}₺ ({service.duration}dk)</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tarih</label>
+                  <input
+                    type="date"
+                    value={bookingForm.date}
+                    onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Saat</label>
+                  <select
+                    value={bookingForm.time}
+                    onChange={(e) => setBookingForm({ ...bookingForm, time: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    required
+                  >
+                    <option value="">Saat seçiniz</option>
+                    {getAvailableTimes().map(time => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
+                Randevu Oluştur
+              </button>
+            </form>
+          </div>
+
+          {/* Randevularım */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Calendar size={24} className="text-indigo-600" />
+              Randevularım ({myAppointments.length})
+            </h2>
+            <div className="space-y-3">
+              {myAppointments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Henüz randevunuz yok</p>
+              ) : (
+                myAppointments.map(apt => {
+                  const barberInfo = barbers[apt.barberId];
+                  return (
+                    <div key={apt.id} className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-lg">{barberInfo.shopName}</p>
+                          <p className="text-gray-600">{apt.staffName} - {apt.serviceName}</p>
+                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                            <Clock size={16} />
+                            {apt.date} - {apt.time}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                            Onaylı
+                          </span>
+                          <button
+                            onClick={() => cancelAppointment(apt.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <!-- === PRODUCTS TAB === -->
-      <div id="tab-products" class="tab-content hidden">
-        <div class="section">
-          <div class="section-title">Ürünler</div>
-          <div class="section-sub">Randevu sırasında müşteriye sunacağınız ürünleri ve stok durumlarını yönetin.</div>
-
-          <div class="info-banner red">
-            <div class="info-icon">⚠️</div>
-            <div>Stok azalan ürünleri kontrol edip rafı doldurmayı unutmayın.</div>
-          </div>
-
-          <div class="grid-2" id="products-list"></div>
-
-          <div class="section-sub" style="margin-top:12px;font-weight:500;">Yeni Ürün Ekle</div>
-          <div class="form-row">
-            <input type="text" id="new-product-name" placeholder="Ürün Adı">
-            <input type="number" id="new-product-price" placeholder="Fiyat (₺)">
-            <input type="number" id="new-product-stock" placeholder="Stok">
-            <button id="btn-add-product">Ekle</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- === SETTINGS TAB === -->
-      <div id="tab-settings" class="tab-content hidden">
-        <div class="section">
-          <div class="section-title">İşletme Ayarları</div>
-          <div class="section-sub">Çalışma saatleri, açık/kapalı günler ve temel işletme bilgilerini ayarlayın.</div>
-
-          <div class="hours-list" id="hours-list"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- TOAST -->
-    <div class="toast" id="toast">
-      <span>✅</span>
-      <div id="toast-text">Randevu oluşturuldu.</div>
-    </div>
-
-  </div>
-</div>
-
-<script>
-const state = {
-  staff:[
-    {id:1,name:"Ahmet Tekeli", services:["Saç Sakal Kesimi","Saç Kesimi","Damat Traşı"]},
-    {id:2,name:"Ali", services:["Saç Kesimi","Sakal Kesimi","Çocuk Saç Kesimi"]}
-  ],
-  services:[
-    {id:1,name:"Saç Sakal Kesimi",price:450,duration:60},
-    {id:2,name:"Saç Kesimi",price:250,duration:30},
-    {id:3,name:"Sakal Kesimi",price:150,duration:20},
-    {id:4,name:"Damat Traşı",price:1250,duration:90},
-    {id:5,name:"Çocuk Saç Kesimi",price:200,duration:30}
-  ],
-  products:[
-    {id:1,name:"TIRAŞ SETİ",price:2500,stock:2},
-    {id:2,name:"Şekillendirici Jel",price:600,stock:6}
-  ],
-  workingHours:{
-    "Pazartesi": {open:true,start:"09:00",end:"19:00"},
-    "Salı": {open:true,start:"09:00",end:"19:00"},
-    "Çarşamba": {open:true,start:"09:00",end:"19:00"},
-    "Perşembe": {open:true,start:"09:00",end:"19:00"},
-    "Cuma": {open:true,start:"09:00",end:"19:00"},
-    "Cumartesi": {open:true,start:"09:00",end:"19:00"},
-    "Pazar": {open:true,start:"09:00",end:"19:00"}
-  },
-  reservations:[],
-  notifications:0,
-  selectedStaff:null,
-  selectedServices:new Set(),
-  selectedProducts:new Set(),
-  selectedDate:null,
-  selectedTime:null
+  return null;
 };
 
-/* ==== HELPERS ==== */
-function $(sel){return document.querySelector(sel);}
-function create(el,cls){const e=document.createElement(el); if(cls)e.className=cls; return e;}
-
-function showToast(msg){
-  const t=$("#toast");
-  $("#toast-text").textContent=msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2500);
-}
-
-/* ==== LOGIN ==== */
-$("#btn-login").addEventListener("click",()=>{
-  const email=$("#login-email").value.trim();
-  const pass=$("#login-password").value.trim();
-  if(!email || !pass){
-    showToast("E-posta ve şifre girin.");
-    return;
-  }
-  $("#screen-login").classList.add("hidden");
-  $("#screen-dashboard").classList.remove("hidden");
-});
-
-$("#btn-logout").addEventListener("click",()=>{
-  $("#screen-dashboard").classList.add("hidden");
-  $("#screen-login").classList.remove("hidden");
-});
-
-/* ==== TABS ==== */
-document.querySelectorAll(".tab-btn").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-    btn.classList.add("active");
-    const t=btn.getAttribute("data-tab");
-    document.querySelectorAll(".tab-content").forEach(sec=>sec.classList.add("hidden"));
-    $("#tab-"+t).classList.remove("hidden");
-  });
-});
-
-/* ==== STAFF RENDER ==== */
-function renderStaffAdmin(){
-  const wrap=$("#staff-list");
-  wrap.innerHTML="";
-  state.staff.forEach(s=>{
-    const card=create("div","staff-card");
-    const head=create("div","staff-header");
-    const av=create("div","staff-avatar");
-    av.textContent=s.name.charAt(0);
-    const name=create("div","staff-name");
-    name.textContent=s.name;
-    head.appendChild(av);head.appendChild(name);
-    card.appendChild(head);
-
-    const servWrap=create("div","staff-services");
-    s.services.forEach(h=>{
-      const pill=create("div","pill");
-      pill.textContent=h;
-      servWrap.appendChild(pill);
-    });
-    card.appendChild(servWrap);
-
-    const actions=create("div","card-actions");
-    const edit=create("button","btn-xs edit");
-    edit.textContent="Düzenle";
-    edit.onclick=()=>{ 
-      const yeni=prompt("Eleman adı",s.name)||s.name;
-      const serv=prompt("Hizmetleri virgülle yaz",s.services.join(", "));
-      s.name=yeni;
-      if(serv) s.services=serv.split(",").map(x=>x.trim()).filter(Boolean);
-      renderAll();
-    };
-    const del=create("button","btn-xs delete");
-    del.textContent="Sil";
-    del.onclick=()=>{
-      if(confirm("Silinsin mi?")){ 
-        state.staff=state.staff.filter(x=>x.id!==s.id);
-        if(state.selectedStaff===s.id) state.selectedStaff=null;
-        renderAll();
-      }
-    };
-    actions.appendChild(edit);actions.appendChild(del);
-    card.appendChild(actions);
-    wrap.appendChild(card);
-  });
-}
-$("#btn-add-staff").addEventListener("click",()=>{
-  const n=$("#new-staff-name").value.trim();
-  const s=$("#new-staff-services").value.trim();
-  if(!n)return;
-  const arr=s?s.split(",").map(x=>x.trim()).filter(Boolean):[];
-  state.staff.push({id:Date.now(),name:n,services:arr});
-  $("#new-staff-name").value="";
-  $("#new-staff-services").value="";
-  renderAll();
-});
-
-/* ==== SERVICES ==== */
-function renderServicesAdmin(){
-  const wrap=$("#services-list");
-  wrap.innerHTML="";
-  state.services.forEach(s=>{
-    const card=create("div","service-card");
-    const icon=create("div","service-icon");
-    icon.textContent="✂️";
-    const name=create("div","service-name");
-    name.textContent=s.name;
-    const price=create("div","service-price");
-    price.textContent=`₺${s.price.toFixed(2)}`;
-    const dur=create("div","service-duration");
-    dur.textContent=`Süre: ${s.duration} dk`;
-    card.appendChild(icon);card.appendChild(name);card.appendChild(price);card.appendChild(dur);
-    card.onclick=()=>{
-      const yeniAd=prompt("Hizmet adı",s.name)||s.name;
-      const fiyat=parseFloat(prompt("Fiyat",s.price)||s.price);
-      const sure=parseInt(prompt("Süre (dk)",s.duration)||s.duration,10);
-      s.name=yeniAd;
-      if(!isNaN(fiyat))s.price=fiyat;
-      if(!isNaN(sure))s.duration=sure;
-      renderAll();
-    };
-    wrap.appendChild(card);
-  });
-}
-$("#btn-add-service").addEventListener("click",()=>{
-  const name=$("#new-service-name").value.trim();
-  const price=parseFloat($("#new-service-price").value||"0");
-  const dur=parseInt($("#new-service-duration").value||"30",10);
-  if(!name)return;
-  state.services.push({id:Date.now(),name,price:isNaN(price)?0:price,duration:isNaN(dur)?30:dur});
-  $("#new-service-name").value="";
-  $("#new-service-price").value="";
-  $("#new-service-duration").value="";
-  renderAll();
-});
-
-/* ==== PRODUCTS ==== */
-function renderProductsAdmin(){
-  const wrap=$("#products-list");
-  wrap.innerHTML="";
-  state.products.forEach(p=>{
-    const card=create("div","product-card");
-    const thumb=create("div","product-thumb");
-    thumb.textContent="🧴";
-    const name=create("div","product-name");
-    name.textContent=p.name;
-    const price=create("div","product-price");
-    price.textContent=`₺${p.price.toFixed(2)}`;
-    const stock=create("div","product-stock");
-    stock.textContent=`Stok: ${p.stock}`;
-    if(p.stock<=2){
-      const b=create("div","badge-sm");
-      b.textContent="Azalıyor";
-      card.appendChild(b);
-    }
-    card.appendChild(thumb);card.appendChild(name);card.appendChild(price);card.appendChild(stock);
-    card.onclick=()=>{
-      const yeniAd=prompt("Ürün adı",p.name)||p.name;
-      const fiyat=parseFloat(prompt("Fiyat",p.price)||p.price);
-      const stok=parseInt(prompt("Stok",p.stock)||p.stock,10);
-      p.name=yeniAd;
-      if(!isNaN(fiyat))p.price=fiyat;
-      if(!isNaN(stok))p.stock=stok;
-      renderAll();
-    };
-    wrap.appendChild(card);
-  });
-}
-$("#btn-add-product").addEventListener("click",()=>{
-  const name=$("#new-product-name").value.trim();
-  const price=parseFloat($("#new-product-price").value||"0");
-  const stock=parseInt($("#new-product-stock").value||"0",10);
-  if(!name)return;
-  state.products.push({id:Date.now(),name,price:isNaN(price)?0:price,stock:isNaN(stock)?0:stock});
-  $("#new-product-name").value="";
-  $("#new-product-price").value="";
-  $("#new-product-stock").value="";
-  renderAll();
-});
-
-/* ==== HOURS ==== */
-function renderHours(){
-  const wrap=$("#hours-list");
-  wrap.innerHTML="";
-  Object.entries(state.workingHours).forEach(([day,obj])=>{
-    const row=create("div","hour-row");
-    const left=create("div","hour-left");
-    left.innerHTML=`<strong>${day}</strong>`;
-    const time=create("div","hour-time");
-    time.textContent=`${obj.start} - ${obj.end}`;
-    left.appendChild(time);
-    const btn=create("button","hour-toggle "+(obj.open?"on":"off"));
-    btn.textContent=obj.open?"Açık":"Kapalı";
-    btn.onclick=()=>{
-      obj.open=!obj.open;
-      renderAll();
-    };
-    row.appendChild(left);row.appendChild(btn);
-    row.onclick=(e)=>{
-      if(e.target===btn)return;
-      const start=prompt(day+" için başlangıç saati",obj.start)||obj.start;
-      const end=prompt(day+" için bitiş saati",obj.end)||obj.end;
-      obj.start=start;obj.end=end;
-      renderAll();
-    };
-    wrap.appendChild(row);
-  });
-}
-
-/* ==== REZERVASYON FLOW ==== */
-function renderRezStaff(){
-  const wrap=$("#rez-staff");
-  wrap.innerHTML="";
-  state.staff.forEach(s=>{
-    const pill=create("div","staff-pill");
-    if(state.selectedStaff===null) state.selectedStaff=s.id; // default
-    if(state.selectedStaff===s.id) pill.classList.add("active");
-    pill.innerHTML=`<span>Eleman</span><strong>${s.name}</strong>`;
-    pill.onclick=()=>{
-      state.selectedStaff=s.id;
-      renderRezStaff();
-    };
-    wrap.appendChild(pill);
-  });
-}
-
-function renderRezServices(){
-  const wrap=$("#rez-services");
-  wrap.innerHTML="";
-  state.services.forEach(s=>{
-    const card=create("div","service-card");
-    if(state.selectedServices.has(s.id))card.classList.add("selected");
-    card.innerHTML=`
-      <div class="service-icon">✂️</div>
-      <div class="service-name">${s.name}</div>
-      <div class="service-price">₺${s.price.toFixed(2)}</div>
-      <div class="service-duration">${s.duration} dk</div>`;
-    card.onclick=()=>{
-      if(state.selectedServices.has(s.id)) state.selectedServices.delete(s.id);
-      else state.selectedServices.add(s.id);
-      renderRezServices();
-      updateTotal();
-    };
-    wrap.appendChild(card);
-  });
-}
-
-function renderRezProducts(){
-  const wrap=$("#rez-products");
-  wrap.innerHTML="";
-  state.products.forEach(p=>{
-    const card=create("div","product-card");
-    if(state.selectedProducts.has(p.id))card.classList.add("selected");
-    if(p.stock<=2){
-      const b=create("div","badge-sm");
-      b.textContent="Azalıyor";
-      card.appendChild(b);
-    }
-    card.innerHTML+=`
-      <div class="product-thumb">🧴</div>
-      <div class="product-name">${p.name}</div>
-      <div class="product-price">₺${p.price.toFixed(2)}</div>
-      <div class="product-stock">Stok: ${p.stock}</div>`;
-    card.onclick=()=>{
-      if(state.selectedProducts.has(p.id)) state.selectedProducts.delete(p.id);
-      else state.selectedProducts.add(p.id);
-      renderRezProducts();
-      updateTotal();
-    };
-    wrap.appendChild(card);
-  });
-}
-
-function renderRezDates(){
-  const wrap=$("#rez-dates");
-  wrap.innerHTML="";
-  const today=new Date();
-  for(let i=0;i<7;i++){
-    const d=new Date(today);
-    d.setDate(d.getDate()+i);
-    const day=d.getDate();
-    const month=d.toLocaleString("tr-TR",{month:"short"}).toUpperCase();
-    const weekday=d.toLocaleString("tr-TR",{weekday:"short"}).toUpperCase();
-    const key=d.toISOString().slice(0,10);
-    if(!state.selectedDate) state.selectedDate=key;
-    const chip=create("div","date-chip");
-    if(state.selectedDate===key)chip.classList.add("active");
-    chip.innerHTML=`<strong>${day}</strong>${month}<br>${weekday}`;
-    chip.onclick=()=>{state.selectedDate=key;renderRezDates();renderRezTimes();renderResList();};
-    wrap.appendChild(chip);
-  }
-}
-
-function renderRezTimes(){
-  const wrap=$("#rez-times");
-  wrap.innerHTML="";
-  const times=["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00"];
-  const taken=new Set(state.reservations.filter(r=>r.date===state.selectedDate).map(r=>r.time));
-  times.forEach(t=>{
-    const btn=create("button","time-btn");
-    if(taken.has(t)){
-      btn.classList.add("disabled");
-    }
-    if(state.selectedTime===t) btn.classList.add("selected");
-    btn.textContent=t;
-    btn.onclick=()=>{
-      if(btn.classList.contains("disabled"))return;
-      state.selectedTime=t;
-      renderRezTimes();
-    };
-    wrap.appendChild(btn);
-  });
-}
-
-function updateTotal(){
-  let total=0;
-  state.selectedServices.forEach(id=>{
-    const s=state.services.find(x=>x.id===id);
-    if(s)total+=s.price;
-  });
-  state.selectedProducts.forEach(id=>{
-    const p=state.products.find(x=>x.id===id);
-    if(p)total+=p.price;
-  });
-  $("#rez-total strong").textContent="₺"+total.toFixed(2);
-}
-
-/* create reservation */
-$("#btn-create-res").addEventListener("click",()=>{
-  if(!state.selectedStaff){showToast("Eleman seçin.");return;}
-  if(state.selectedServices.size===0){showToast("En az bir hizmet seçin.");return;}
-  if(!state.selectedDate){showToast("Tarih seçin.");return;}
-  if(!state.selectedTime){showToast("Saat seçin.");return;}
-
-  const staff=state.staff.find(s=>s.id===state.selectedStaff);
-  const serviceNames=[...state.selectedServices].map(id=>state.services.find(s=>s.id===id)?.name).join(", ");
-  const totalText=$("#rez-total strong").textContent;
-
-  state.reservations.push({
-    id:Date.now(),
-    date:state.selectedDate,
-    time:state.selectedTime,
-    staffName:staff?staff.name:"",
-    services:serviceNames,
-    total:totalText
-  });
-  state.notifications++;
-  $("#badge-notif").textContent=state.notifications;
-
-  showToast("Randevu oluşturuldu.");
-  // reset time selection (slot dolu olsun)
-  state.selectedTime=null;
-  renderRezTimes();
-  renderResList();
-});
-
-/* render reservations list for selected day */
-function renderResList(){
-  const wrap=$("#res-list");
-  wrap.innerHTML="";
-  const todays=state.reservations.filter(r=>r.date===state.selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
-  if(todays.length===0){
-    const p=create("div","section-sub");
-    p.style.marginTop="4px";
-    p.textContent="Bu gün için henüz randevu yok.";
-    wrap.appendChild(p);
-    return;
-  }
-  todays.forEach(r=>{
-    const item=create("div","res-item");
-    item.innerHTML=`
-      <strong>${r.time} • ${r.staffName}</strong>
-      <div>${r.services}</div>
-      <div>${r.total}</div>
-    `;
-    wrap.appendChild(item);
-  });
-}
-
-/* ==== NOTIFICATION BUTTON ==== */
-$("#btn-bell").addEventListener("click",()=>{
-  if(state.notifications===0){
-    showToast("Yeni bildirim yok.");
-  }else{
-    showToast(state.notifications+" yeni randevu bildirimi.");
-    state.notifications=0;
-    $("#badge-notif").textContent="0";
-  }
-});
-
-/* ==== MASTER RENDER ==== */
-function renderAll(){
-  renderStaffAdmin();
-  renderServicesAdmin();
-  renderProductsAdmin();
-  renderHours();
-  renderRezStaff();
-  renderRezServices();
-  renderRezProducts();
-  renderRezDates();
-  renderRezTimes();
-  updateTotal();
-  renderResList();
-}
-renderAll();
-</script>
-
-</body>
-</html>
+export default BarberAppointmentSystem;
