@@ -1,605 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Scissors, Settings, LogOut, Users, Plus, X, Edit2, Check } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Güzeloba Çilingir Kasa Takip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-20">
 
-const BarberAppointmentSystem = () => {
-  const [currentView, setCurrentView] = useState('login');
-  const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState([
-    { id: 1, email: 'berber@ornek.com', password: '123456', type: 'barber', name: 'Ahmet Kuaför', phone: '0555 111 2233' },
-    { id: 2, email: 'musteri@ornek.com', password: '123456', type: 'customer', name: 'Mehmet Yılmaz', phone: '0555 444 5566' }
-  ]);
-  
-  const [barbers, setBarbers] = useState({
-    1: {
-      shopName: 'Ahmet Kuaför',
-      staff: [
-        { id: 1, name: 'Ahmet Usta', specialty: 'Klasik Kesim' },
-        { id: 2, name: 'Mehmet Kalfa', specialty: 'Modern Kesim' }
-      ],
-      services: [
-        { id: 1, name: 'Saç Kesimi', duration: 30, price: 200 },
-        { id: 2, name: 'Sakal Tıraşı', duration: 20, price: 100 },
-        { id: 3, name: 'Saç + Sakal', duration: 45, price: 250 }
-      ]
-    }
-  });
-  
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      barberId: 1,
-      customerId: 2,
-      customerName: 'Mehmet Yılmaz',
-      staffId: 1,
-      staffName: 'Ahmet Usta',
-      serviceId: 1,
-      serviceName: 'Saç Kesimi',
-      date: '2026-01-22',
-      time: '14:00',
-      status: 'confirmed'
-    }
-  ]);
+    <header class="bg-blue-700 text-white p-6 shadow-lg rounded-b-3xl">
+        <h1 class="text-xl font-bold">Güzeloba Çilingir</h1>
+        <p class="text-sm opacity-80">Mobil Kasa Takip Sistemi</p>
+        <div class="mt-4 bg-white/20 p-4 rounded-2xl backdrop-blur-md">
+            <span class="text-xs uppercase tracking-wider">Güncel Kasa</span>
+            <div id="toplamKasa" class="text-3xl font-bold">0.00 TL</div>
+        </div>
+    </header>
 
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [registerForm, setRegisterForm] = useState({ email: '', password: '', name: '', phone: '', type: 'customer' });
-  const [showRegister, setShowRegister] = useState(false);
-  
-  const [editingStaff, setEditingStaff] = useState(null);
-  const [editingService, setEditingService] = useState(null);
-  const [newStaff, setNewStaff] = useState({ name: '', specialty: '' });
-  const [newService, setNewService] = useState({ name: '', duration: 30, price: 0 });
-  
-  const [bookingForm, setBookingForm] = useState({
-    barberId: null,
-    staffId: null,
-    serviceId: null,
-    date: '',
-    time: ''
-  });
+    <main class="p-4 space-y-4">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+            <h2 class="font-semibold mb-3">Yeni İşlem Kaydı</h2>
+            <div class="space-y-3">
+                <input id="aciklama" type="text" placeholder="İşlem (Örn: Kale Kilit Değişimi)" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                <div class="flex gap-2">
+                    <input id="tutar" type="number" placeholder="Tutar (TL)" class="w-1/2 p-3 border rounded-xl outline-none">
+                    <select id="tip" class="w-1/2 p-3 border rounded-xl outline-none bg-gray-50">
+                        <option value="gelir">Gelir (+)</option>
+                        <option value="gider">Gider (-)</option>
+                    </select>
+                </div>
+                <button onclick="islemEkle()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">KAYDET</button>
+            </div>
+        </div>
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const user = users.find(u => u.email === loginForm.email && u.password === loginForm.password);
-    if (user) {
-      setCurrentUser(user);
-      setCurrentView(user.type === 'barber' ? 'barber-panel' : 'customer-panel');
-      setLoginForm({ email: '', password: '' });
-    } else {
-      alert('Hatalı giriş bilgileri!');
-    }
-  };
+        <div class="space-y-2">
+            <h2 class="font-semibold px-2">Son İşlemler</h2>
+            <div id="islemListesi" class="space-y-2">
+                </div>
+        </div>
+    </main>
 
-  const handleRegister = (e) => {
-    e.preventDefault();
-    const newUser = {
-      id: users.length + 1,
-      ...registerForm
-    };
-    setUsers([...users, newUser]);
-    
-    if (registerForm.type === 'barber') {
-      setBarbers({
-        ...barbers,
-        [newUser.id]: {
-          shopName: registerForm.name,
-          staff: [],
-          services: []
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around text-xs font-medium text-gray-500">
+        <button onclick="verileriTemizle()" class="text-red-500">KASAYI SIFIRLA</button>
+        <span>© 2026 Güzeloba Teknik</span>
+    </nav>
+
+    <script>
+        let islemler = JSON.parse(localStorage.getItem('cilingir_kasa')) || [];
+
+        function islemEkle() {
+            const aciklama = document.getElementById('aciklama').value;
+            const tutar = parseFloat(document.getElementById('tutar').value);
+            const tip = document.getElementById('tip').value;
+
+            if (!aciklama || !tutar) return alert("Lütfen bilgileri girin!");
+
+            const yeniIslem = {
+                id: Date.now(),
+                aciklama,
+                tutar: tip === 'gelir' ? tutar : -tutar,
+                tarih: new Date().toLocaleDateString('tr-TR')
+            };
+
+            islemler.unshift(yeniIslem);
+            localStorage.setItem('cilingir_kasa', JSON.stringify(islemler));
+            
+            document.getElementById('aciklama').value = '';
+            document.getElementById('tutar').value = '';
+            arayuzuGuncelle();
         }
-      });
-    }
-    
-    alert('Kayıt başarılı! Giriş yapabilirsiniz.');
-    setShowRegister(false);
-    setRegisterForm({ email: '', password: '', name: '', phone: '', type: 'customer' });
-  };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentView('login');
-  };
+        function arayuzuGuncelle() {
+            const liste = document.getElementById('islemListesi');
+            const kasaText = document.getElementById('toplamKasa');
+            let toplam = 0;
 
-  const addStaff = () => {
-    if (!newStaff.name || !newStaff.specialty) return;
-    const updatedBarber = { ...barbers[currentUser.id] };
-    updatedBarber.staff.push({
-      id: updatedBarber.staff.length + 1,
-      ...newStaff
-    });
-    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
-    setNewStaff({ name: '', specialty: '' });
-  };
-
-  const deleteStaff = (staffId) => {
-    const updatedBarber = { ...barbers[currentUser.id] };
-    updatedBarber.staff = updatedBarber.staff.filter(s => s.id !== staffId);
-    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
-  };
-
-  const addService = () => {
-    if (!newService.name || !newService.price) return;
-    const updatedBarber = { ...barbers[currentUser.id] };
-    updatedBarber.services.push({
-      id: updatedBarber.services.length + 1,
-      ...newService
-    });
-    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
-    setNewService({ name: '', duration: 30, price: 0 });
-  };
-
-  const deleteService = (serviceId) => {
-    const updatedBarber = { ...barbers[currentUser.id] };
-    updatedBarber.services = updatedBarber.services.filter(s => s.id !== serviceId);
-    setBarbers({ ...barbers, [currentUser.id]: updatedBarber });
-  };
-
-  const bookAppointment = (e) => {
-    e.preventDefault();
-    const barber = barbers[bookingForm.barberId];
-    const staff = barber.staff.find(s => s.id === parseInt(bookingForm.staffId));
-    const service = barber.services.find(s => s.id === parseInt(bookingForm.serviceId));
-    
-    const newAppointment = {
-      id: appointments.length + 1,
-      barberId: bookingForm.barberId,
-      customerId: currentUser.id,
-      customerName: currentUser.name,
-      staffId: staff.id,
-      staffName: staff.name,
-      serviceId: service.id,
-      serviceName: service.name,
-      date: bookingForm.date,
-      time: bookingForm.time,
-      status: 'confirmed'
-    };
-    
-    setAppointments([...appointments, newAppointment]);
-    setBookingForm({ barberId: null, staffId: null, serviceId: null, date: '', time: '' });
-    alert('Randevunuz başarıyla oluşturuldu!');
-  };
-
-  const cancelAppointment = (appointmentId) => {
-    if (confirm('Randevuyu iptal etmek istediğinizden emin misiniz?')) {
-      setAppointments(appointments.filter(a => a.id !== appointmentId));
-    }
-  };
-
-  const getAvailableTimes = () => {
-    const times = [];
-    for (let h = 9; h <= 18; h++) {
-      times.push(`${h.toString().padStart(2, '0')}:00`);
-      if (h < 18) times.push(`${h.toString().padStart(2, '0')}:30`);
-    }
-    return times;
-  };
-
-  // Login View
-  if (currentView === 'login') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="bg-indigo-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Scissors className="text-white" size={32} />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800">Berber Randevu</h1>
-            <p className="text-gray-600 mt-2">Kolay ve hızlı randevu sistemi</p>
-          </div>
-
-          {!showRegister ? (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
-                <input
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
-                <input
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-                Giriş Yap
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowRegister(true)}
-                className="w-full border border-indigo-600 text-indigo-600 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition"
-              >
-                Kayıt Ol
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Hesap Tipi</label>
-                <select
-                  value={registerForm.type}
-                  onChange={(e) => setRegisterForm({ ...registerForm, type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="customer">Müşteri</option>
-                  <option value="barber">Berber</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {registerForm.type === 'barber' ? 'Berber Adı' : 'Ad Soyad'}
-                </label>
-                <input
-                  type="text"
-                  value={registerForm.name}
-                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Telefon</label>
-                <input
-                  type="tel"
-                  value={registerForm.phone}
-                  onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">E-posta</label>
-                <input
-                  type="email"
-                  value={registerForm.email}
-                  onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
-                <input
-                  type="password"
-                  value={registerForm.password}
-                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-              </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-                Kayıt Ol
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowRegister(false)}
-                className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
-              >
-                Geri Dön
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Barber Panel
-  if (currentView === 'barber-panel') {
-    const myAppointments = appointments.filter(a => a.barberId === currentUser.id);
-    const myBarber = barbers[currentUser.id];
-
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-indigo-600 text-white p-6 shadow-lg">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Scissors size={32} />
-              <div>
-                <h1 className="text-2xl font-bold">{myBarber.shopName}</h1>
-                <p className="text-indigo-200">{currentUser.name}</p>
-              </div>
-            </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 bg-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-800 transition">
-              <LogOut size={20} />
-              Çıkış
-            </button>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {/* Çalışanlar */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Users size={24} className="text-indigo-600" />
-              Çalışanlar
-            </h2>
-            <div className="space-y-3">
-              {myBarber.staff.map(staff => (
-                <div key={staff.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold">{staff.name}</p>
-                    <p className="text-sm text-gray-600">{staff.specialty}</p>
-                  </div>
-                  <button onClick={() => deleteStaff(staff.id)} className="text-red-600 hover:text-red-800">
-                    <X size={20} />
-                  </button>
-                </div>
-              ))}
-              <div className="flex gap-2 mt-4">
-                <input
-                  type="text"
-                  placeholder="Çalışan adı"
-                  value={newStaff.name}
-                  onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="text"
-                  placeholder="Uzmanlık"
-                  value={newStaff.specialty}
-                  onChange={(e) => setNewStaff({ ...newStaff, specialty: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                <button onClick={addStaff} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
-                  <Plus size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Hizmetler */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Scissors size={24} className="text-indigo-600" />
-              Hizmetler
-            </h2>
-            <div className="space-y-3">
-              {myBarber.services.map(service => (
-                <div key={service.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold">{service.name}</p>
-                    <p className="text-sm text-gray-600">{service.duration} dk - {service.price} ₺</p>
-                  </div>
-                  <button onClick={() => deleteService(service.id)} className="text-red-600 hover:text-red-800">
-                    <X size={20} />
-                  </button>
-                </div>
-              ))}
-              <div className="flex gap-2 mt-4">
-                <input
-                  type="text"
-                  placeholder="Hizmet adı"
-                  value={newService.name}
-                  onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="number"
-                  placeholder="Süre (dk)"
-                  value={newService.duration}
-                  onChange={(e) => setNewService({ ...newService, duration: parseInt(e.target.value) })}
-                  className="w-24 px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                <input
-                  type="number"
-                  placeholder="Fiyat (₺)"
-                  value={newService.price}
-                  onChange={(e) => setNewService({ ...newService, price: parseInt(e.target.value) })}
-                  className="w-24 px-4 py-2 border border-gray-300 rounded-lg"
-                />
-                <button onClick={addService} className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">
-                  <Plus size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Randevular */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Calendar size={24} className="text-indigo-600" />
-              Randevular ({myAppointments.length})
-            </h2>
-            <div className="space-y-3">
-              {myAppointments.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Henüz randevu yok</p>
-              ) : (
-                myAppointments.map(apt => (
-                  <div key={apt.id} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-lg">{apt.customerName}</p>
-                        <p className="text-gray-600">{apt.staffName} - {apt.serviceName}</p>
-                        <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                          <Clock size={16} />
-                          {apt.date} - {apt.time}
-                        </p>
-                      </div>
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                        {apt.status === 'confirmed' ? 'Onaylı' : 'İptal'}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Customer Panel
-  if (currentView === 'customer-panel') {
-    const myAppointments = appointments.filter(a => a.customerId === currentUser.id);
-    const allBarbers = Object.entries(barbers).map(([id, data]) => ({
-      id: parseInt(id),
-      ...data
-    }));
-
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-indigo-600 text-white p-6 shadow-lg">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <User size={32} />
-              <div>
-                <h1 className="text-2xl font-bold">Müşteri Paneli</h1>
-                <p className="text-indigo-200">{currentUser.name}</p>
-              </div>
-            </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 bg-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-800 transition">
-              <LogOut size={20} />
-              Çıkış
-            </button>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {/* Randevu Oluştur */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Plus size={24} className="text-indigo-600" />
-              Yeni Randevu Oluştur
-            </h2>
-            <form onSubmit={bookAppointment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Berber Seçin</label>
-                <select
-                  value={bookingForm.barberId || ''}
-                  onChange={(e) => setBookingForm({ ...bookingForm, barberId: parseInt(e.target.value), staffId: null, serviceId: null })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  required
-                >
-                  <option value="">Berber seçiniz</option>
-                  {allBarbers.map(barber => (
-                    <option key={barber.id} value={barber.id}>{barber.shopName}</option>
-                  ))}
-                </select>
-              </div>
-
-              {bookingForm.barberId && barbers[bookingForm.barberId].staff.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Usta Seçin</label>
-                  <select
-                    value={bookingForm.staffId || ''}
-                    onChange={(e) => setBookingForm({ ...bookingForm, staffId: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  >
-                    <option value="">Usta seçiniz</option>
-                    {barbers[bookingForm.barberId].staff.map(staff => (
-                      <option key={staff.id} value={staff.id}>{staff.name} - {staff.specialty}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {bookingForm.barberId && barbers[bookingForm.barberId].services.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet Seçin</label>
-                  <select
-                    value={bookingForm.serviceId || ''}
-                    onChange={(e) => setBookingForm({ ...bookingForm, serviceId: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  >
-                    <option value="">Hizmet seçiniz</option>
-                    {barbers[bookingForm.barberId].services.map(service => (
-                      <option key={service.id} value={service.id}>{service.name} - {service.price}₺ ({service.duration}dk)</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tarih</label>
-                  <input
-                    type="date"
-                    value={bookingForm.date}
-                    onChange={(e) => setBookingForm({ ...bookingForm, date: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Saat</label>
-                  <select
-                    value={bookingForm.time}
-                    onChange={(e) => setBookingForm({ ...bookingForm, time: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  >
-                    <option value="">Saat seçiniz</option>
-                    {getAvailableTimes().map(time => (
-                      <option key={time} value={time}>{time}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition">
-                Randevu Oluştur
-              </button>
-            </form>
-          </div>
-
-          {/* Randevularım */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Calendar size={24} className="text-indigo-600" />
-              Randevularım ({myAppointments.length})
-            </h2>
-            <div className="space-y-3">
-              {myAppointments.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Henüz randevunuz yok</p>
-              ) : (
-                myAppointments.map(apt => {
-                  const barberInfo = barbers[apt.barberId];
-                  return (
-                    <div key={apt.id} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-start">
+            liste.innerHTML = '';
+            islemler.forEach(islem => {
+                toplam += islem.tutar;
+                const renk = islem.tutar > 0 ? 'text-green-600' : 'text-red-600';
+                liste.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border-l-4 ${islem.tutar > 0 ? 'border-green-500' : 'border-red-500'}">
                         <div>
-                          <p className="font-semibold text-lg">{barberInfo.shopName}</p>
-                          <p className="text-gray-600">{apt.staffName} - {apt.serviceName}</p>
-                          <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                            <Clock size={16} />
-                            {apt.date} - {apt.time}
-                          </p>
+                            <div class="font-medium">${islem.aciklama}</div>
+                            <div class="text-xs text-gray-400">${islem.tarih}</div>
                         </div>
-                        <div className="flex gap-2">
-                          <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                            Onaylı
-                          </span>
-                          <button
-                            onClick={() => cancelAppointment(apt.id)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <X size={20} />
-                          </button>
-                        </div>
-                      </div>
+                        <div class="font-bold ${renk}">${islem.tutar.toFixed(2)} TL</div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+                `;
+            });
 
-  return null;
-};
+            kasaText.innerText = toplam.toFixed(2) + " TL";
+        }
 
-export default BarberAppointmentSystem;
+        function verileriTemizle() {
+            if(confirm("Tüm kasa geçmişi silinecek. Emin misiniz?")) {
+                localStorage.removeItem('cilingir_kasa');
+                islemler = [];
+                arayuzuGuncelle();
+            }
+        }
+
+        // İlk açılışta verileri yükle
+        arayuzuGuncelle();
+    </script>
+</body>
+</html>
