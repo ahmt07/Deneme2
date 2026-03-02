@@ -3,110 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Güzeloba Çilingir Kasa Takip</title>
+    <title>Güzeloba Kasa Takip v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .kapanis-geldi { border: 3px solid #ef4444; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-20">
+<body class="pb-24">
 
-    <header class="bg-blue-700 text-white p-6 shadow-lg rounded-b-3xl">
-        <h1 class="text-xl font-bold">Güzeloba Çilingir</h1>
-        <p class="text-sm opacity-80">Mobil Kasa Takip Sistemi</p>
-        <div class="mt-4 bg-white/20 p-4 rounded-2xl backdrop-blur-md">
-            <span class="text-xs uppercase tracking-wider">Güncel Kasa</span>
-            <div id="toplamKasa" class="text-3xl font-bold">0.00 TL</div>
+    <header class="bg-slate-900 text-white p-5 shadow-2xl rounded-b-[2rem]">
+        <div class="flex justify-between items-center mb-4">
+            <div>
+                <h1 class="text-lg font-bold">Güzeloba Çilingir</h1>
+                <p id="tarihGoster" class="text-xs opacity-60"></p>
+            </div>
+            <div id="saatGoster" class="text-xl font-mono font-bold text-yellow-400">00:00</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white/10 p-3 rounded-2xl">
+                <span class="text-[10px] uppercase opacity-70">Günlük Ciro</span>
+                <div id="gunlukCiro" class="text-xl font-bold text-green-400">0 TL</div>
+            </div>
+            <div class="bg-white/10 p-3 rounded-2xl">
+                <span class="text-[10px] uppercase opacity-70">Aylık Toplam</span>
+                <div id="aylikCiro" class="text-xl font-bold text-blue-400">0 TL</div>
+            </div>
+        </div>
+        
+        <div id="kapanisUyari" class="hidden mt-3 p-2 bg-red-600 text-center rounded-lg text-xs font-bold uppercase">
+            ⚠️ SAAT 22:00 - GÜN KAPANIŞI YAPILDI
         </div>
     </header>
 
     <main class="p-4 space-y-4">
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-            <h2 class="font-semibold mb-3">Yeni İşlem Kaydı</h2>
-            <div class="space-y-3">
-                <input id="aciklama" type="text" placeholder="İşlem (Örn: Kale Kilit Değişimi)" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
-                <div class="flex gap-2">
-                    <input id="tutar" type="number" placeholder="Tutar (TL)" class="w-1/2 p-3 border rounded-xl outline-none">
-                    <select id="tip" class="w-1/2 p-3 border rounded-xl outline-none bg-gray-50">
-                        <option value="gelir">Gelir (+)</option>
-                        <option value="gider">Gider (-)</option>
-                    </select>
-                </div>
-                <button onclick="islemEkle()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">KAYDET</button>
+        <div id="formContainer" class="bg-white p-5 rounded-2xl shadow-sm">
+            <input id="aciklama" type="text" placeholder="İşlem (Örn: Lara Kapı Açma)" class="w-full p-3 mb-3 border rounded-xl outline-none focus:ring-2 focus:ring-slate-800">
+            <div class="flex gap-2 mb-3">
+                <input id="tutar" type="number" placeholder="Tutar" class="w-2/3 p-3 border rounded-xl outline-none">
+                <select id="tip" class="w-1/3 p-3 border rounded-xl bg-gray-50 font-bold">
+                    <option value="gelir">GELİR</option>
+                    <option value="gider">GİDER</option>
+                </select>
             </div>
+            <button onclick="islemKaydet()" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl active:scale-95 transition">İŞLEMİ KAYDET</button>
         </div>
 
-        <div class="space-y-2">
-            <h2 class="font-semibold px-2">Son İşlemler</h2>
-            <div id="islemListesi" class="space-y-2">
-                </div>
+        <div>
+            <h3 class="text-sm font-bold text-gray-500 px-2 mb-2 uppercase">Bugünkü İşlemler</h3>
+            <div id="islemListesi" class="space-y-2"></div>
         </div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around text-xs font-medium text-gray-500">
-        <button onclick="verileriTemizle()" class="text-red-500">KASAYI SIFIRLA</button>
-        <span>© 2026 Güzeloba Teknik</span>
-    </nav>
+    <div class="fixed bottom-4 left-4 right-4 bg-white shadow-xl border rounded-2xl p-3 flex justify-between items-center">
+        <button onclick="exportData()" class="text-xs font-bold text-slate-600">📊 RAPOR AL (CSV)</button>
+        <button onclick="veriyiSifirla()" class="text-[10px] text-red-400">Verileri Temizle</button>
+    </div>
 
     <script>
-        let islemler = JSON.parse(localStorage.getItem('cilingir_kasa')) || [];
+        let islemler = JSON.parse(localStorage.getItem('guzeloba_data')) || [];
 
-        function islemEkle() {
+        function islemKaydet() {
             const aciklama = document.getElementById('aciklama').value;
             const tutar = parseFloat(document.getElementById('tutar').value);
             const tip = document.getElementById('tip').value;
+            const simdi = new Date();
 
-            if (!aciklama || !tutar) return alert("Lütfen bilgileri girin!");
+            if (!aciklama || !tutar) return alert("Eksik bilgi!");
 
-            const yeniIslem = {
+            const veri = {
                 id: Date.now(),
                 aciklama,
                 tutar: tip === 'gelir' ? tutar : -tutar,
-                tarih: new Date().toLocaleDateString('tr-TR')
+                saat: simdi.getHours() + ":" + simdi.getMinutes().toString().padStart(2, '0'),
+                tarih: simdi.toISOString().split('T')[0], // YYYY-MM-DD
+                ay: simdi.getMonth() + 1,
+                yil: simdi.getFullYear()
             };
 
-            islemler.unshift(yeniIslem);
-            localStorage.setItem('cilingir_kasa', JSON.stringify(islemler));
+            islemler.unshift(veri);
+            localStorage.setItem('guzeloba_data', JSON.stringify(islemler));
             
             document.getElementById('aciklama').value = '';
             document.getElementById('tutar').value = '';
-            arayuzuGuncelle();
+            ekraniGuncelle();
         }
 
-        function arayuzuGuncelle() {
+        function ekraniGuncelle() {
             const liste = document.getElementById('islemListesi');
-            const kasaText = document.getElementById('toplamKasa');
-            let toplam = 0;
+            const gCiroText = document.getElementById('gunlukCiro');
+            const aCiroText = document.getElementById('aylikCiro');
+            const simdi = new Date();
+            const bugunStr = simdi.toISOString().split('T')[0];
+            const buAy = simdi.getMonth() + 1;
+
+            let gunlukToplam = 0;
+            let aylikToplam = 0;
 
             liste.innerHTML = '';
+
             islemler.forEach(islem => {
-                toplam += islem.tutar;
-                const renk = islem.tutar > 0 ? 'text-green-600' : 'text-red-600';
-                liste.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border-l-4 ${islem.tutar > 0 ? 'border-green-500' : 'border-red-500'}">
-                        <div>
-                            <div class="font-medium">${islem.aciklama}</div>
-                            <div class="text-xs text-gray-400">${islem.tarih}</div>
+                // Aylık Hesaplama
+                if(islem.ay === buAy) aylikToplam += islem.tutar;
+
+                // Günlük Liste ve Hesaplama
+                if(islem.tarih === bugunStr) {
+                    gunlukToplam += islem.tutar;
+                    liste.innerHTML += `
+                        <div class="bg-white p-4 rounded-xl flex justify-between items-center shadow-sm">
+                            <div>
+                                <div class="font-bold text-slate-800 text-sm">${islem.aciklama}</div>
+                                <div class="text-[10px] text-gray-400">${islem.saat}</div>
+                            </div>
+                            <div class="font-bold ${islem.tutar > 0 ? 'text-green-600' : 'text-red-600'}">
+                                ${islem.tutar > 0 ? '+' : ''}${islem.tutar} TL
+                            </div>
                         </div>
-                        <div class="font-bold ${renk}">${islem.tutar.toFixed(2)} TL</div>
-                    </div>
-                `;
+                    `;
+                }
             });
 
-            kasaText.innerText = toplam.toFixed(2) + " TL";
-        }
+            gCiroText.innerText = gunlukToplam.toFixed(2) + " TL";
+            aCiroText.innerText = aylikToplam.toFixed(2) + " TL";
 
-        function verileriTemizle() {
-            if(confirm("Tüm kasa geçmişi silinecek. Emin misiniz?")) {
-                localStorage.removeItem('cilingir_kasa');
-                islemler = [];
-                arayuzuGuncelle();
+            // Kapanış Kontrolü (22:00)
+            const saat = simdi.getHours();
+            if (saat >= 22) {
+                document.getElementById('kapanisUyari').classList.remove('hidden');
+                document.getElementById('formContainer').classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                document.getElementById('kapanisUyari').classList.add('hidden');
+                document.getElementById('formContainer').classList.remove('opacity-50', 'pointer-events-none');
             }
         }
 
-        // İlk açılışta verileri yükle
-        arayuzuGuncelle();
+        // Canlı Saat
+        setInterval(() => {
+            const n = new Date();
+            document.getElementById('saatGoster').innerText = n.toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+            if(n.getMinutes() === 0 && n.getSeconds() === 0) ekraniGuncelle(); // Her saat başı kontrol
+        }, 1000);
+
+        function exportData() {
+            let csv = "Tarih,Aciklama,Tutar,Saat\n";
+            islemler.forEach(i => { csv += `${i.tarih},${i.aciklama},${i.tutar},${i.saat}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'guzeloba_kasa_rapor.csv');
+            a.click();
+        }
+
+        function veriyiSifirla() {
+            if(confirm("Tüm kayıtlar silinsin mi?")) {
+                localStorage.clear();
+                islemler = [];
+                ekraniGuncelle();
+            }
+        }
+
+        document.getElementById('tarihGoster').innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        ekraniGuncelle();
     </script>
 </body>
 </html>
