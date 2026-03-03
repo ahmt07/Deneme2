@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Güzeloba Kasa v9</title>
+    <title>Güzeloba Kasa v10</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -56,12 +56,21 @@
         </div>
 
         <div class="bg-white/10 border border-white/20 p-3 rounded-2xl text-center">
-            <span class="text-[9px] font-bold opacity-60 uppercase">Genel Kasa (Cepteki Toplam)</span>
+            <span class="text-[9px] font-bold opacity-60 uppercase">Genel Kasa</span>
             <div id="netKasa" class="text-xl font-black text-white">0 TL</div>
         </div>
     </header>
 
-    <main class="px-4 mt-6 space-y-6">
+    <section class="p-4">
+        <div onclick="copyIBAN()" class="bg-white border-2 border-indigo-100 p-4 rounded-2xl shadow-sm active:bg-indigo-50 transition cursor-pointer">
+            <p class="text-[9px] font-black text-indigo-600 uppercase mb-2 tracking-widest text-center">IBAN NUMARASI (KOPYALAMAK İÇİN DOKUN)</p>
+            <div class="bg-slate-50 p-3 rounded-xl border border-dashed border-indigo-200">
+                <p id="ibanText" class="text-center font-mono font-bold text-slate-800 text-sm tracking-widest break-all uppercase">TR29 0001 2001 2680 0009 1029 92</p>
+            </div>
+        </div>
+    </section>
+
+    <main class="px-4 space-y-6">
         <div id="formContainer" class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
             <input id="aciklama" type="text" placeholder="İşlem veya Müşteri Adı" class="w-full p-4 mb-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-900 text-sm font-medium">
             <div class="flex gap-2 mb-4">
@@ -83,23 +92,23 @@
         </div>
 
         <div>
-            <h3 class="text-[10px] font-black text-slate-400 px-3 mb-3 uppercase tracking-widest">Bugünün Kayıtları</h3>
+            <h3 class="text-[10px] font-black text-slate-400 px-3 mb-3 uppercase tracking-widest text-center">Bugünün Kayıtları</h3>
             <div id="islemListesi" class="space-y-2"></div>
         </div>
     </main>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-4 flex justify-between items-center px-10 shadow-2xl z-50">
-        <button onclick="copyIBAN()" class="text-[10px] font-black text-indigo-600 uppercase">IBAN</button>
-        <button onclick="exportData()" class="text-[10px] font-black text-slate-700 uppercase">📊 RAPOR</button>
+        <button onclick="exportData()" class="text-xs font-black text-slate-700 uppercase">📊 RAPOR AL</button>
         <button onclick="veriyiSifirla()" class="text-[10px] text-red-300 font-bold uppercase">SIFIRLA</button>
     </div>
 
     <script>
-        let islemler = JSON.parse(localStorage.getItem('guzeloba_v9')) || [];
+        let islemler = JSON.parse(localStorage.getItem('guzeloba_v10')) || [];
 
         function copyIBAN() {
-            navigator.clipboard.writeText("Mehmet Soner Eroğlu\nTR29 0001 2001 2680 0009 1029 92");
-            alert("İsim ve IBAN kopyalandı!");
+            const iban = "TR29 0001 2001 2680 0009 1029 92";
+            navigator.clipboard.writeText(iban);
+            alert("IBAN Kopyalandı!");
         }
 
         function islemKaydet() {
@@ -121,7 +130,7 @@
             };
 
             islemler.unshift(veri);
-            localStorage.setItem('guzeloba_v9', JSON.stringify(islemler));
+            localStorage.setItem('guzeloba_v10', JSON.stringify(islemler));
             
             document.getElementById('aciklama').value = '';
             document.getElementById('tutar').value = '';
@@ -137,7 +146,7 @@
                 islemler[index].saat = simdi.getHours().toString().padStart(2, '0') + ":" + simdi.getMinutes().toString().padStart(2, '0');
                 islemler[index].aciklama = "TAHSİLAT: " + islemler[index].aciklama;
                 
-                localStorage.setItem('guzeloba_v9', JSON.stringify(islemler));
+                localStorage.setItem('guzeloba_v10', JSON.stringify(islemler));
                 ekraniGuncelle();
             }
         }
@@ -168,7 +177,6 @@
             vListe.innerHTML = '';
 
             islemler.forEach(islem => {
-                // Veresiye
                 if(islem.tip === 'veresiye') {
                     veresiyeToplam += islem.tutar;
                     vListe.innerHTML += `
@@ -184,19 +192,13 @@
                         </div>`;
                 }
 
-                // Kasa Hesaplamaları
                 if(islem.tip !== 'veresiye') {
-                    // Genel Toplamlar
                     if(islem.tip === 'gelir') genelGelir += islem.tutar;
                     if(islem.tip === 'gider') genelGider += islem.tutar;
-
-                    // Aylık Toplamlar
                     if(islem.ay === buAy) {
                         if(islem.tip === 'gelir') aylikBrut += islem.tutar;
                         if(islem.tip === 'gider') aylikGider += islem.tutar;
                     }
-
-                    // Günlük Liste
                     if(islem.tarih === bugunStr) {
                         if(islem.tip === 'gelir') gunlukBrut += islem.tutar;
                         liste.innerHTML += `
@@ -232,12 +234,12 @@
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = "guzeloba_kasa_v9.csv";
+            link.download = "guzeloba_kasa_v10.csv";
             link.click();
         }
 
         function veriyiSifirla() {
-            if(confirm("UYARI: Tüm veriler silinecek!")) {
+            if(confirm("Tüm veriler silinecek! Onaylıyor musunuz?")) {
                 localStorage.clear();
                 location.reload();
             }
