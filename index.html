@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Güzeloba Kasa v13</title>
+    <title>Güzeloba Kasa v12</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,7 +20,7 @@
 <body class="pb-32">
 
     <header class="bg-indigo-950 text-white p-6 shadow-2xl rounded-b-[3rem] sticky top-0 z-40">
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-6">
             <div>
                 <h1 class="text-xl font-black tracking-tighter uppercase text-indigo-100">Güzeloba Çilingir</h1>
                 <p id="tarihGoster" class="text-[10px] opacity-60 font-bold uppercase"></p>
@@ -28,14 +28,9 @@
             <div id="saatGoster" class="text-2xl font-mono font-black text-yellow-400">00:00</div>
         </div>
 
-        <div onclick="copyIBAN()" class="bg-white/10 border border-white/20 p-3 rounded-2xl mb-4 text-center active:bg-white/20 transition cursor-pointer">
-            <span class="text-[8px] font-bold opacity-60 uppercase tracking-widest">Dokun ve Kopyala</span>
-            <div id="ibanText" class="text-sm font-mono font-bold text-indigo-200">TR29 0001 2001 2680 0009 1029 92</div>
-        </div>
-
         <div class="grid grid-cols-2 gap-3 mb-3 text-center">
             <div class="bg-white/5 border border-white/10 p-3 rounded-2xl">
-                <span class="text-[9px] font-bold opacity-60 uppercase">Bugün</span>
+                <span class="text-[9px] font-bold opacity-60 uppercase">Bugünkü İş</span>
                 <div id="gunlukCiro" class="text-lg font-bold text-emerald-400">0 TL</div>
             </div>
             <button onclick="togglePanel('veresiyePanel', true)" class="bg-orange-500/20 border border-orange-500/40 p-3 rounded-2xl">
@@ -44,13 +39,13 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-2">
             <div class="bg-sky-500/10 border border-sky-500/20 p-2 rounded-xl text-center">
-                <span class="text-[8px] font-bold text-sky-400 uppercase">Ay Net Kar</span>
+                <span class="text-[8px] font-bold text-sky-400 uppercase">Ay Net</span>
                 <div id="aylikNet" class="text-sm font-black text-sky-400">0 TL</div>
             </div>
-            <div class="bg-white/10 border border-white/20 p-2 rounded-xl text-center">
-                <span class="text-[8px] font-bold opacity-60 uppercase">Genel Kasa</span>
+            <div class="col-span-2 bg-white/10 border border-white/20 p-2 rounded-xl text-center">
+                <span class="text-[8px] font-bold opacity-60 uppercase">Genel Kasa (Net)</span>
                 <div id="netKasa" class="text-sm font-black text-white">0 TL</div>
             </div>
         </div>
@@ -59,64 +54,65 @@
     <main class="px-4 mt-6 space-y-6">
         <div class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
             <input id="aciklama" type="text" placeholder="İşlem / Müşteri Adı" class="w-full p-4 mb-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-900 text-sm font-medium">
-            
-            <input id="islemNotu" type="text" placeholder="Varsa borç notu (Örn: Pazar ödenecek)" class="w-full p-3 mb-3 border border-slate-100 bg-slate-50 rounded-xl outline-none text-xs italic">
-
             <div class="flex gap-2 mb-4">
-                <input id="tutar" type="number" placeholder="Tutar" class="w-1/2 p-4 border border-slate-200 rounded-2xl outline-none text-sm font-bold text-indigo-950">
+                <input id="tutar" type="number" placeholder="Tutar" class="w-1/2 p-4 border border-slate-200 rounded-2xl outline-none text-sm font-bold">
                 <select id="tip" class="w-1/2 p-4 border border-slate-200 rounded-2xl bg-slate-50 font-bold text-xs uppercase text-indigo-900">
                     <option value="gelir">GELİR (+)</option>
                     <option value="gider">GİDER (-)</option>
                     <option value="veresiye">VERESİYE (BORÇ)</option>
                 </select>
             </div>
-            <button onclick="islemKaydet()" class="w-full bg-indigo-950 text-white font-black py-4 rounded-2xl active:scale-95 transition shadow-lg text-sm">Kaydet</button>
+            <button onclick="islemKaydet()" class="w-full bg-indigo-950 text-white font-black py-4 rounded-2xl active:scale-95 transition shadow-lg text-sm">Sisteme İşle</button>
         </div>
 
         <div>
-            <h3 class="text-[10px] font-black text-slate-400 px-3 mb-3 uppercase tracking-widest text-center">Bugünkü Hareketler</h3>
+            <h3 class="text-[10px] font-black text-slate-400 px-3 mb-3 uppercase tracking-widest text-center">Bugünkü Kayıtlar</h3>
             <div id="islemListesi" class="space-y-2"></div>
         </div>
     </main>
 
-    <div id="veresiyePanel" class="fixed inset-0 bg-black/60 z-[100] panel-hidden backdrop-blur-sm flex items-end">
-        <div class="bg-slate-50 w-full h-[85vh] rounded-t-[3rem] p-6 flex flex-col shadow-2xl">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-xl font-black text-slate-800 uppercase">Veresiye Defteri</h2>
-                    <p class="text-[10px] text-slate-400 font-bold">TOPLAM ALACAK BURADA LİSTELENİR</p>
-                </div>
-                <button onclick="togglePanel('veresiyePanel', false)" class="text-xs font-bold text-red-500 border border-red-100 bg-red-50 p-2 px-4 rounded-xl">KAPAT</button>
-            </div>
-            <input type="text" id="veresiyeArama" onkeyup="veresiyeAra()" placeholder="Müşteri ara..." class="w-full p-4 mb-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none font-medium">
-            
-            <div id="veresiyeListesi" class="flex-1 overflow-y-auto space-y-3">
-                </div>
-        </div>
-    </div>
-
     <div id="raporPanel" class="fixed inset-0 bg-black/60 z-[100] panel-hidden backdrop-blur-sm flex items-end">
-        <div class="bg-white w-full h-[75vh] rounded-t-[3rem] p-6 flex flex-col">
+        <div class="bg-white w-full h-[70vh] rounded-t-[3rem] p-6 flex flex-col">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-black text-slate-800 uppercase">Tarihli Rapor</h2>
                 <button onclick="togglePanel('raporPanel', false)" class="text-xs font-bold text-slate-400 border p-2 px-4 rounded-xl">KAPAT</button>
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <input type="date" id="baslangicTarih" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
-                <input type="date" id="bitisTarih" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase px-2">Başlangıç</label>
+                    <input type="date" id="baslangicTarih" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase px-2">Bitiş</label>
+                    <input type="date" id="bitisTarih" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                </div>
             </div>
-            <button onclick="ozelRaporHesapla()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl mb-4 text-xs">SORGULA</button>
-            <div id="raporSonuc" class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl p-4 text-xs space-y-2"></div>
+            <button onclick="ozelRaporHesapla()" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl mb-4">Sorgula ve Raporla</button>
+            <div id="raporSonuc" class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl p-4 text-xs space-y-2">
+                <p class="text-center text-slate-400">Tarih seçip sorgulayın...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="veresiyePanel" class="fixed inset-0 bg-black/60 z-[100] panel-hidden backdrop-blur-sm flex items-end">
+        <div class="bg-slate-50 w-full h-[85vh] rounded-t-[3rem] p-6 flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-slate-800 uppercase">Veresiye Defteri</h2>
+                <button onclick="togglePanel('veresiyePanel', false)" class="text-xs font-bold text-slate-400 border p-2 px-4 rounded-xl">KAPAT</button>
+            </div>
+            <input type="text" id="veresiyeArama" onkeyup="veresiyeAra()" placeholder="Müşteri adı ara..." class="w-full p-4 mb-4 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none font-medium">
+            <div id="veresiyeListesi" class="flex-1 overflow-y-auto space-y-2"></div>
         </div>
     </div>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-4 flex justify-between items-center px-10 shadow-2xl z-40">
-        <button onclick="togglePanel('raporPanel', true)" class="text-[10px] font-black text-slate-700 uppercase">📊 RAPORLA</button>
+        <button onclick="copyIBAN()" class="text-[10px] font-black text-indigo-600 uppercase">IBAN</button>
+        <button onclick="togglePanel('raporPanel', true)" class="text-xs font-black text-slate-700 uppercase">📊 RAPOR AL</button>
         <button onclick="veriyiSifirla()" class="text-[10px] text-red-300 font-bold uppercase">SIFIRLA</button>
     </div>
 
     <script>
-        let islemler = JSON.parse(localStorage.getItem('guzeloba_v13')) || [];
+        let islemler = JSON.parse(localStorage.getItem('guzeloba_v12')) || [];
 
         function togglePanel(id, show) {
             document.getElementById(id).style.display = show ? 'flex' : 'none';
@@ -132,7 +128,6 @@
             const aciklama = document.getElementById('aciklama').value;
             const tutar = parseFloat(document.getElementById('tutar').value);
             const tip = document.getElementById('tip').value;
-            const not = document.getElementById('islemNotu').value;
             const simdi = new Date();
 
             if (!aciklama || isNaN(tutar)) return alert("Eksik bilgi!");
@@ -142,18 +137,55 @@
                 aciklama,
                 tutar,
                 tip,
-                not: not || "",
                 saat: simdi.getHours().toString().padStart(2, '0') + ":" + simdi.getMinutes().toString().padStart(2, '0'),
                 tarih: simdi.toISOString().split('T')[0],
                 ay: simdi.getMonth() + 1
             };
 
             islemler.unshift(veri);
-            localStorage.setItem('guzeloba_v13', JSON.stringify(islemler));
+            localStorage.setItem('guzeloba_v12', JSON.stringify(islemler));
             document.getElementById('aciklama').value = '';
             document.getElementById('tutar').value = '';
-            document.getElementById('islemNotu').value = '';
             ekraniGuncelle();
+        }
+
+        function ozelRaporHesapla() {
+            const bas = document.getElementById('baslangicTarih').value;
+            const bit = document.getElementById('bitisTarih').value;
+            const sonucDiv = document.getElementById('raporSonuc');
+            
+            if(!bas || !bit) return alert("İki tarih de seçilmeli!");
+
+            let rGelir = 0, rGider = 0, rVeresiye = 0;
+            const filtreli = islemler.filter(i => i.tarih >= bas && i.tarih <= bit);
+
+            filtreli.forEach(i => {
+                if(i.tip === 'gelir') rGelir += i.tutar;
+                else if(i.tip === 'gider') rGider += i.tutar;
+                else if(i.tip === 'veresiye') rVeresiye += i.tutar;
+            });
+
+            sonucDiv.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex justify-between bg-emerald-100 p-3 rounded-xl"><span class="font-bold text-emerald-800">TOPLAM GELİR:</span><span class="font-black text-emerald-900">${rGelir.toLocaleString()} TL</span></div>
+                    <div class="flex justify-between bg-red-100 p-3 rounded-xl"><span class="font-bold text-red-800">TOPLAM GİDER:</span><span class="font-black text-red-900">${rGider.toLocaleString()} TL</span></div>
+                    <div class="flex justify-between bg-orange-100 p-3 rounded-xl"><span class="font-bold text-orange-800">AÇIK VERESİYE:</span><span class="font-black text-orange-900">${rVeresiye.toLocaleString()} TL</span></div>
+                    <div class="flex justify-between bg-indigo-600 p-4 rounded-xl text-white mt-2 font-black text-sm uppercase"><span>NET KAR:</span><span>${(rGelir - rGider).toLocaleString()} TL</span></div>
+                    <button onclick="exportDataRange('${bas}','${bit}')" class="w-full border-2 border-indigo-600 text-indigo-600 p-3 rounded-xl font-bold uppercase mt-2">Bu Aralığı CSV İndir</button>
+                </div>
+            `;
+        }
+
+        function exportDataRange(bas, bit) {
+            let csv = "Tarih,Tip,Aciklama,Tutar\n";
+            islemler.filter(i => i.tarih >= bas && i.tarih <= bit).forEach(i => {
+                csv += `${i.tarih},${i.tip},${i.aciklama},${i.tutar}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `rapor_${bas}_${bit}.csv`;
+            link.click();
         }
 
         function borcKapat(id) {
@@ -163,7 +195,7 @@
                 islemler[index].tip = 'gelir';
                 islemler[index].tarih = simdi.toISOString().split('T')[0];
                 islemler[index].aciklama = "TAHSİLAT: " + islemler[index].aciklama;
-                localStorage.setItem('guzeloba_v13', JSON.stringify(islemler));
+                localStorage.setItem('guzeloba_v12', JSON.stringify(islemler));
                 ekraniGuncelle();
             }
         }
@@ -173,26 +205,6 @@
             document.querySelectorAll('.v-item').forEach(item => {
                 item.style.display = item.getAttribute('data-name').toUpperCase().includes(arama) ? "" : "none";
             });
-        }
-
-        function ozelRaporHesapla() {
-            const bas = document.getElementById('baslangicTarih').value;
-            const bit = document.getElementById('bitisTarih').value;
-            const sonucDiv = document.getElementById('raporSonuc');
-            if(!bas || !bit) return alert("Tarih seçin!");
-
-            let rGelir = 0, rGider = 0;
-            const filtreli = islemler.filter(i => i.tarih >= bas && i.tarih <= bit && i.tip !== 'veresiye');
-
-            filtreli.forEach(i => { if(i.tip === 'gelir') rGelir += i.tutar; else rGider += i.tutar; });
-
-            sonucDiv.innerHTML = `
-                <div class="space-y-2 p-2">
-                    <div class="flex justify-between font-bold"><span>Toplam Gelir:</span><span class="text-emerald-600">${rGelir} TL</span></div>
-                    <div class="flex justify-between font-bold"><span>Toplam Gider:</span><span class="text-red-600">${rGider} TL</span></div>
-                    <hr>
-                    <div class="flex justify-between font-black text-indigo-700"><span>NET KAR:</span><span>${rGelir - rGider} TL</span></div>
-                </div>`;
         }
 
         function ekraniGuncelle() {
@@ -209,16 +221,9 @@
                 if(is.tip === 'veresiye') {
                     vTop += is.tutar;
                     vListe.innerHTML += `
-                        <div class="v-item bg-white p-4 rounded-2xl shadow-sm border border-slate-200" data-name="${is.aciklama}">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <div class="font-black text-indigo-900 text-sm uppercase">${is.aciklama}</div>
-                                    <div class="text-[9px] text-slate-400 font-bold">${is.tarih}</div>
-                                </div>
-                                <div class="font-black text-orange-600 text-lg">${is.tutar} TL</div>
-                            </div>
-                            ${is.not ? `<div class="bg-orange-50 p-2 rounded-lg text-[10px] text-orange-800 italic mb-3 border-l-4 border-orange-400">Not: ${is.not}</div>` : ''}
-                            <button onclick="borcKapat(${is.id})" class="w-full bg-emerald-500 text-white text-[10px] py-3 rounded-xl font-black uppercase shadow-lg shadow-emerald-100 active:scale-95 transition">ÖDEME ALINDI (KASAYA AKTAR)</button>
+                        <div class="v-item bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border" data-name="${is.aciklama}">
+                            <div><div class="font-bold text-xs uppercase">${is.aciklama}</div><div class="text-[9px] text-slate-400">${is.tarih}</div></div>
+                            <div class="flex items-center gap-2"><div class="font-black text-orange-600">${is.tutar} TL</div><button onclick="borcKapat(${is.id})" class="bg-orange-500 text-white text-[9px] p-2 rounded-xl font-bold">ÖDENDİ</button></div>
                         </div>`;
                 } else {
                     if(is.tip === 'gelir') gGelir += is.tutar; else gGider += is.tutar;
