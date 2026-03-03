@@ -3,32 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Güzeloba Kasa v11</title>
+    <title>Güzeloba Kasa v11.5</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Çilingir Kasa">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1067/1067555.png">
-    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1067/1067555.png">
-
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         input, select, button { font-size: 16px !important; }
         .modal-active { transform: translateY(0%); transition: transform 0.3s ease-out; }
-        .modal-inactive { transform: translateY(100%); transition: transform 0.3s ease-in; }
     </style>
 </head>
 <body class="pb-32 overflow-x-hidden">
 
     <header class="bg-indigo-950 text-white p-6 shadow-2xl rounded-b-[3rem] sticky top-0 z-40">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex justify-between items-center mb-4">
             <div>
                 <h1 class="text-xl font-black tracking-tighter uppercase text-indigo-100">Güzeloba Çilingir</h1>
                 <p id="tarihGoster" class="text-[10px] opacity-60 font-bold uppercase"></p>
             </div>
             <div id="saatGoster" class="text-2xl font-mono font-black text-yellow-400">00:00</div>
+        </div>
+
+        <div class="bg-white/10 border border-white/20 p-3 rounded-2xl mb-4 flex items-center justify-between">
+            <div onclick="copyIBAN()" class="flex-1">
+                <span class="text-[8px] font-bold opacity-60 uppercase tracking-widest block">DOKUN KOPYALA</span>
+                <span id="ibanText" class="text-[13px] font-mono font-bold text-indigo-200">TR29 0001 2001 2680 0009 1029 92</span>
+            </div>
+            <button onclick="showQR()" class="bg-white/20 p-2 rounded-xl ml-2 active:scale-90 transition">
+                <span class="text-xl">📷</span>
+            </button>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-3 text-center">
@@ -63,6 +72,15 @@
         </div>
     </header>
 
+    <div id="qrModal" onclick="closeQR()" class="fixed inset-0 bg-black/80 z-[100] hidden backdrop-blur-md flex items-center justify-center p-10">
+        <div class="bg-white p-6 rounded-[2rem] text-center" onclick="event.stopPropagation()">
+            <p class="text-xs font-bold text-slate-400 mb-4 uppercase">Ödeme İçin Kamerayla Okutun</p>
+            <div id="qrcode" class="flex justify-center mb-4"></div>
+            <p class="text-[10px] text-slate-800 font-mono mb-4 break-all">TR29 0001 2001 2680 0009 1029 92</p>
+            <button onclick="closeQR()" class="w-full bg-indigo-950 text-white py-3 rounded-xl font-bold">KAPAT</button>
+        </div>
+    </div>
+
     <main class="px-4 mt-6 space-y-6">
         <div id="formContainer" class="bg-white p-5 rounded-3xl shadow-xl border border-slate-100">
             <input id="aciklama" type="text" placeholder="İşlem veya Müşteri Adı" class="w-full p-4 mb-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-900 text-sm font-medium">
@@ -84,44 +102,52 @@
     </main>
 
     <div id="veresiyePanel" class="fixed inset-0 bg-black/60 z-[100] hidden backdrop-blur-sm flex items-end">
-        <div class="bg-slate-50 w-full h-[85vh] rounded-t-[3rem] shadow-2xl flex flex-col p-6 animate-slide-up">
+        <div class="bg-slate-50 w-full h-[85vh] rounded-t-[3rem] shadow-2xl flex flex-col p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-black text-slate-800 uppercase tracking-tighter">Veresiye Defteri</h2>
                 <button onclick="toggleVeresiye(false)" class="bg-slate-200 p-2 rounded-full px-4 text-xs font-bold text-slate-600">KAPAT</button>
             </div>
-
+            <div class="relative mb-4 text-xs font-medium text-orange-600">İsim ile borçlu ara:</div>
             <div class="relative mb-4">
-                <input type="text" id="veresiyeArama" onkeyup="veresiyeAra()" placeholder="Müşteri adı ara..." class="w-full p-4 pl-12 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-orange-500 font-medium">
+                <input type="text" id="veresiyeArama" onkeyup="veresiyeAra()" placeholder="Müşteri adı..." class="w-full p-4 pl-12 bg-white border border-slate-200 rounded-2xl shadow-sm outline-none focus:ring-2 focus:ring-orange-500 font-medium">
                 <span class="absolute left-4 top-4 opacity-30 text-xl">🔍</span>
             </div>
-
-            <div id="veresiyeListesi" class="flex-1 overflow-y-auto space-y-3 pb-10">
-                </div>
+            <div id="veresiyeListesi" class="flex-1 overflow-y-auto space-y-3 pb-10"></div>
         </div>
     </div>
 
     <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t p-4 flex justify-between items-center px-10 shadow-2xl z-40">
-        <button onclick="copyIBAN()" class="text-[10px] font-black text-indigo-600 uppercase">IBAN KOPYALA</button>
-        <button onclick="exportData()" class="text-[10px] font-black text-slate-700 uppercase">📊 RAPOR</button>
+        <button onclick="exportData()" class="text-[10px] font-black text-slate-700 uppercase">📊 RAPOR AL</button>
         <button onclick="veriyiSifirla()" class="text-[10px] text-red-300 font-bold uppercase">SIFIRLA</button>
     </div>
 
     <script>
-        let islemler = JSON.parse(localStorage.getItem('guzeloba_v11')) || [];
+        let islemler = JSON.parse(localStorage.getItem('guzeloba_v11_5')) || [];
+        const myIBAN = "TR29 0001 2001 2680 0009 1029 92";
 
         function copyIBAN() {
-            navigator.clipboard.writeText("TR29 0001 2001 2680 0009 1029 92");
+            navigator.clipboard.writeText(myIBAN);
             alert("IBAN Kopyalandı!");
+        }
+
+        function showQR() {
+            document.getElementById('qrModal').classList.remove('hidden');
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById("qrcode"), {
+                text: myIBAN,
+                width: 200,
+                height: 200
+            });
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').classList.add('hidden');
         }
 
         function toggleVeresiye(open) {
             const panel = document.getElementById('veresiyePanel');
-            if(open) {
-                panel.classList.remove('hidden');
-                ekraniGuncelle();
-            } else {
-                panel.classList.add('hidden');
-            }
+            if(open) { panel.classList.remove('hidden'); ekraniGuncelle(); } 
+            else { panel.classList.add('hidden'); }
         }
 
         function islemKaydet() {
@@ -129,22 +155,16 @@
             const tutar = parseFloat(document.getElementById('tutar').value);
             const tip = document.getElementById('tip').value;
             const simdi = new Date();
-
             if (!aciklama || isNaN(tutar)) return alert("Eksik bilgi!");
-
             const veri = {
                 id: Date.now(),
-                aciklama,
-                tutar,
-                tip,
+                aciklama, tutar, tip,
                 saat: simdi.getHours().toString().padStart(2, '0') + ":" + simdi.getMinutes().toString().padStart(2, '0'),
                 tarih: simdi.toISOString().split('T')[0],
                 ay: simdi.getMonth() + 1
             };
-
             islemler.unshift(veri);
-            localStorage.setItem('guzeloba_v11', JSON.stringify(islemler));
-            
+            localStorage.setItem('guzeloba_v11_5', JSON.stringify(islemler));
             document.getElementById('aciklama').value = '';
             document.getElementById('tutar').value = '';
             ekraniGuncelle();
@@ -156,19 +176,15 @@
                 const simdi = new Date();
                 islemler[index].tip = 'gelir';
                 islemler[index].tarih = simdi.toISOString().split('T')[0];
-                islemler[index].saat = simdi.getHours().toString().padStart(2, '0') + ":" + simdi.getMinutes().toString().padStart(2, '0');
                 islemler[index].aciklama = "TAHSİLAT: " + islemler[index].aciklama;
-                
-                localStorage.setItem('guzeloba_v11', JSON.stringify(islemler));
+                localStorage.setItem('guzeloba_v11_5', JSON.stringify(islemler));
                 ekraniGuncelle();
             }
         }
 
         function veresiyeAra() {
             const input = document.getElementById('veresiyeArama').value.toUpperCase();
-            const items = document.querySelectorAll('.veresiye-item');
-            
-            items.forEach(item => {
+            document.querySelectorAll('.veresiye-item').forEach(item => {
                 const text = item.getAttribute('data-name').toUpperCase();
                 item.style.display = text.includes(input) ? "" : "none";
             });
@@ -177,31 +193,16 @@
         function ekraniGuncelle() {
             const liste = document.getElementById('islemListesi');
             const vListe = document.getElementById('veresiyeListesi');
-            
-            const gCiroText = document.getElementById('gunlukCiro');
-            const vToplamText = document.getElementById('toplamVeresiye');
-            const aCiroText = document.getElementById('aylikCiro');
-            const aGiderText = document.getElementById('aylikGider');
-            const aNetText = document.getElementById('aylikNet');
-            const genelKasaText = document.getElementById('netKasa');
-            
             const simdi = new Date();
             const bugunStr = simdi.toISOString().split('T')[0];
             const buAy = simdi.getMonth() + 1;
 
-            let gunlukBrut = 0;
-            let aylikBrut = 0;
-            let aylikGider = 0;
-            let veresiyeToplam = 0;
-            let genelGelir = 0;
-            let genelGider = 0;
-
-            liste.innerHTML = '';
-            vListe.innerHTML = '';
+            let gCiro = 0, aBrut = 0, aGider = 0, vTop = 0, genGelir = 0, genGider = 0;
+            liste.innerHTML = ''; vListe.innerHTML = '';
 
             islemler.forEach(islem => {
                 if(islem.tip === 'veresiye') {
-                    veresiyeToplam += islem.tutar;
+                    vTop += islem.tutar;
                     vListe.innerHTML += `
                         <div class="veresiye-item bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-200 shadow-sm" data-name="${islem.aciklama}">
                             <div class="flex-1">
@@ -210,26 +211,21 @@
                             </div>
                             <div class="flex items-center gap-3">
                                 <div class="font-black text-orange-600 text-sm">${islem.tutar.toLocaleString('tr-TR')} TL</div>
-                                <button onclick="borcKapat(${islem.id})" class="bg-orange-500 text-white text-[10px] px-3 py-2 rounded-xl font-black active:scale-90 transition shadow-lg shadow-orange-100">ÖDENDİ</button>
+                                <button onclick="borcKapat(${islem.id})" class="bg-orange-500 text-white text-[10px] px-3 py-2 rounded-xl font-black">ÖDENDİ</button>
                             </div>
                         </div>`;
-                }
-
-                if(islem.tip !== 'veresiye') {
-                    if(islem.tip === 'gelir') genelGelir += islem.tutar;
-                    if(islem.tip === 'gider') genelGider += islem.tutar;
+                } else {
+                    if(islem.tip === 'gelir') genGelir += islem.tutar;
+                    if(islem.tip === 'gider') genGider += islem.tutar;
                     if(islem.ay === buAy) {
-                        if(islem.tip === 'gelir') aylikBrut += islem.tutar;
-                        if(islem.tip === 'gider') aylikGider += islem.tutar;
+                        if(islem.tip === 'gelir') aBrut += islem.tutar;
+                        if(islem.tip === 'gider') aGider += islem.tutar;
                     }
                     if(islem.tarih === bugunStr) {
-                        if(islem.tip === 'gelir') gunlukBrut += islem.tutar;
+                        if(islem.tip === 'gelir') gCiro += islem.tutar;
                         liste.innerHTML += `
                             <div class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border border-slate-100">
-                                <div>
-                                    <div class="font-bold text-slate-800 text-xs uppercase">${islem.aciklama}</div>
-                                    <div class="text-[10px] text-slate-400 font-bold">${islem.saat}</div>
-                                </div>
+                                <div><div class="font-bold text-slate-800 text-xs uppercase">${islem.aciklama}</div><div class="text-[10px] text-slate-400 font-bold">${islem.saat}</div></div>
                                 <div class="font-black ${islem.tip === 'gelir' ? 'text-emerald-600' : 'text-red-500'}">
                                     ${islem.tip === 'gelir' ? '+' : '-'}${islem.tutar.toLocaleString('tr-TR')} TL
                                 </div>
@@ -238,12 +234,12 @@
                 }
             });
 
-            gCiroText.innerText = gunlukBrut.toLocaleString('tr-TR') + " TL";
-            vToplamText.innerText = veresiyeToplam.toLocaleString('tr-TR') + " TL";
-            aCiroText.innerText = aylikBrut.toLocaleString('tr-TR') + " TL";
-            aGiderText.innerText = aylikGider.toLocaleString('tr-TR') + " TL";
-            aNetText.innerText = (aylikBrut - aylikGider).toLocaleString('tr-TR') + " TL";
-            genelKasaText.innerText = (genelGelir - genelGider).toLocaleString('tr-TR') + " TL";
+            document.getElementById('gunlukCiro').innerText = gCiro.toLocaleString('tr-TR') + " TL";
+            document.getElementById('toplamVeresiye').innerText = vTop.toLocaleString('tr-TR') + " TL";
+            document.getElementById('aylikCiro').innerText = aBrut.toLocaleString('tr-TR') + " TL";
+            document.getElementById('aylikGider').innerText = aGider.toLocaleString('tr-TR') + " TL";
+            document.getElementById('aylikNet').innerText = (aBrut - aGider).toLocaleString('tr-TR') + " TL";
+            document.getElementById('netKasa').innerText = (genGelir - genGider).toLocaleString('tr-TR') + " TL";
         }
 
         setInterval(() => {
@@ -252,20 +248,17 @@
         }, 1000);
 
         function exportData() {
-            let csv = "Tarih,Tip,Islem,Tutar,Saat\n";
-            islemler.forEach(i => { csv += `${i.tarih},${i.tip},${i.aciklama},${i.tutar},${i.saat}\n`; });
+            let csv = "Tarih,Tip,Islem,Tutar\n";
+            islemler.forEach(i => { csv += `${i.tarih},${i.tip},${i.aciklama},${i.tutar}\n`; });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = "guzeloba_kasa_v11.csv";
+            link.download = "guzeloba_kasa_v11_5.csv";
             link.click();
         }
 
         function veriyiSifirla() {
-            if(confirm("Tüm veriler silinecek! Onaylıyor musunuz?")) {
-                localStorage.clear();
-                location.reload();
-            }
+            if(confirm("Tüm veriler silinecek!")) { localStorage.clear(); location.reload(); }
         }
 
         document.getElementById('tarihGoster').innerText = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
